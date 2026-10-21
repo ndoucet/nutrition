@@ -48,12 +48,14 @@ This example is illustrative, not an authoritative composition record.
 Amounts are stored as fixed-point integers with 3 decimals (31 g → `31000`), and quantities as integer grams. To avoid rounding on each ingredient, the engine sums the products first and divides once:
 
 ```
-total = sum(N_i * Q_i) / R        # i64; R = 100 for every food
+total = sum(N_i * Q_i) / R        # i128 sum, i64 result; R = 100 for every food
 ```
 
 In the example: `31000 * 150 = 4_650_000`, divided by 100 → `46500`, i.e. 46.500 g.
 
-When all foods share the same reference quantity, this is exact until the final division. If reference quantities differ, scale each product to a common denominator before summing.
+When all foods share the same reference quantity, this is exact until the final division. If reference quantities differ, scale each product to a common denominator before summing. Phase 1 supports only R = 100 g (D19).
+
+The final division rounds half away from zero (D11). Products are computed in `i128`.
 
 ### Raw and cooked
 
@@ -91,6 +93,8 @@ nutrient_per_serving = recipe_nutrient / S
 
 `S` must be a positive integer.
 
+In integers, the division is applied once to the unrounded sum: `sum(N_i * Q_i) / (R * S)` (D12).
+
 The application should explain that serving size is defined by the user and may not match a standard dietary portion.
 
 If the recipe's cooked weight `W` is known, a portion of `P` grams of the finished dish is:
@@ -98,6 +102,8 @@ If the recipe's cooked weight `W` is known, a portion of `P` grams of the finish
 ```
 nutrient_in_portion = recipe_nutrient * P / W
 ```
+
+In integers: `sum(N_i * Q_i) * P / (R * W)`, one division (D12). `P` and `W` are positive integer grams; without `W`, a portion in grams cannot be calculated and is an error.
 
 ## 5. Energy units
 
@@ -122,7 +128,9 @@ Examples:
 - Protein: g.
 - Vitamin C: mg.
 - Vitamin D: µg.
-- Energy: kcal.
+- Energy: kJ and kcal, as two separate nutrients taken from the source (D14).
+
+The full table is in [DECISIONS.md](DECISIONS.md), D14.
 
 Mass conversions:
 
@@ -224,7 +232,8 @@ Later phases: a total with incomplete ingredient data should be labelled as part
 - Store and aggregate amounts as integers (fixed-point, 3 decimals); see section 2.
 - Use floats only for equations, PAL, and percentages.
 - Round for display only, not after each ingredient.
-- Document the display precision for each nutrient.
+- Display precision depends on the unit (D16): g and mg 1 decimal, µg 2 decimals, kcal and kJ 0 decimals.
+- Every rounding, in calculation and display, is half away from zero (D11).
 - Use explicit tolerances in tests that involve floats.
 - Validate inputs before calculation.
 
@@ -243,7 +252,7 @@ Test:
 - Reference-value selection.
 - Boundaries and unsupported profiles.
 
-Expected values come from *golden* fixtures: a small set of CIQUAL foods and a few recipes calculated by hand, with their expected results checked against the source tables.
+Expected values come from *golden* fixtures: a small set of CIQUAL foods and a few recipes calculated by hand, with their expected results checked against the source tables. Phase 1 uses synthetic foods instead; CIQUAL fixtures come with phase 2 (D13).
 
 ## 14. Scientific references
 

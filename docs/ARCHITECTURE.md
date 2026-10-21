@@ -135,15 +135,16 @@ crates/
       main.rs
 ```
 
-The layout may be simplified during the initial prototype, but `nutrition-core` stays free of I/O.
+The layout may be simplified during the initial prototype, but `nutrition-core` stays free of I/O. Phase 1 creates only `nutrition-core` (D15); it also has `domain/quantity.rs` (grams, amounts, units), `error.rs`, `tests/` and `examples/`.
 
 ## 5. Error handling
 
 Errors stop a calculation. They include:
 
-- Invalid input (zero or negative quantity, zero servings).
+- Invalid input (zero or negative quantity, zero servings, negative nutrient amount, empty recipe, portion without a cooked weight, duplicate food or nutrient identifier).
 - A food that does not exist in the local database.
-- An unsupported profile or calculation method.
+- An unsupported profile or calculation method (including a reference quantity other than 100 g in phase 1, D19).
+- Arithmetic overflow (not reachable with realistic quantities).
 - Database failures.
 - Failed data imports (including unit conversion failures at import time).
 

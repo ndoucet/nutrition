@@ -18,7 +18,7 @@ The initial implementation should minimize dependencies and avoid introducing a 
 
 Rust is responsible for domain logic, validation, persistence integration, and nutritional calculations.
 
-The code is organized as a Cargo workspace (`nutrition-core`, `nutrition-store`, `nutrition-cli`; see [ARCHITECTURE.md](ARCHITECTURE.md) §4).
+The code is organized as a Cargo workspace (`nutrition-core`, `nutrition-store`, `nutrition-cli`; see [ARCHITECTURE.md](ARCHITECTURE.md) §4). Only `nutrition-core` exists in phase 1 (D15).
 
 Recommended initial dependencies:
 
@@ -131,7 +131,7 @@ Integers are used as much as possible; floats only where required (see [DECISION
 
 - Quantities: integer grams.
 - Nutrient amounts: integer fixed-point, 3 decimals of the canonical unit, stored as SQLite `INTEGER`.
-- Aggregation: `i64`, with a single division by the reference quantity at the end (see [CALCULATION.md](CALCULATION.md) §2). Overflow is not a concern at realistic quantities.
+- Aggregation: products and sums in `i128`, results in `i64`, with a single division by the reference quantity at the end (see [CALCULATION.md](CALCULATION.md) §2, D11). A result that does not fit in `i64` is an overflow error; it cannot happen at realistic quantities.
 - Floats (`f64`): energy equations, PAL, percentages of reference values, display conversions.
 
 Round for display only. Tests involving floats use explicit tolerances.

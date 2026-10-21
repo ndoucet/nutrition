@@ -1,6 +1,6 @@
 # Decisions
 
-Design decisions taken so far. Each entry gives the decision, its date and, where useful, the reason. The IDs refer to [INIT_REVIEW.md](INIT_REVIEW.md) (Cn = contradiction, Dn = decision).
+Design decisions taken so far. Each entry gives the decision, its date and, where useful, the reason. D1–D10 and the Cn IDs come from the initial review of the first draft (Cn = contradiction, Dn = decision); D11 onwards were recorded during implementation.
 
 When a decision changes, update its entry and keep a short note of the previous choice.
 
@@ -20,7 +20,17 @@ When a decision changes, update its entry and keep a short note of the previous 
 | C1 | Profile data stored only on user request | 2026-10-21 |
 | C5 | Incomplete data is not an error | 2026-10-21 |
 | C6 | No activity tracking; activity level is a PAL input | 2026-10-21 |
-| — | Roadmap contradictions (C2, C3, C4) postponed | 2026-10-21 |
+| D11 | Integer division rounds half away from zero | 2026-10-21 |
+| D12 | Per-serving and per-portion values use a single division | 2026-10-21 |
+| D13 / C4 | Phase 1 uses synthetic test foods; CIQUAL fixtures from phase 2 | 2026-10-21 |
+| D14 | Canonical units; energy stored as two nutrients (kJ and kcal) | 2026-10-21 |
+| D15 | Phase 1 scope: `nutrition-core` only, printable result | 2026-10-21 |
+| D16 | Display precision per unit | 2026-10-21 |
+| D17 | Recipe items are identified by position; a food may appear twice | 2026-10-21 |
+| D18 | A known value of 0 is normalized to the zero state | 2026-10-21 |
+| D19 | Phase 1 supports only a 100 g reference quantity | 2026-10-21 |
+| D20 | Nutrients are data, not a Rust enum | 2026-10-21 |
+| — | Roadmap contradictions (C2, C3) postponed | 2026-10-21 |
 
 ## D1 / C7: numeric representation
 
@@ -28,7 +38,7 @@ Use integers as much as possible, and floats only when an operation requires the
 
 - Food quantities are integer grams.
 - Nutrient amounts are stored as integer fixed-point values with 3 decimals of the nutrient's canonical unit (for example, 12.345 g of protein is stored as `12345`).
-- Meal aggregation is done in integers (`i64`). The division by the reference quantity happens once, on the total, not per ingredient (see [CALCULATION.md](CALCULATION.md) §3).
+- Meal aggregation is done in integers: products and sums in `i128`, results in `i64` (an overflow on narrowing is an error). The division by the reference quantity happens once, on the total, not per ingredient (see [CALCULATION.md](CALCULATION.md) §3). Previously (2026-10-21): aggregation in `i64`; changed with D11 so that intermediate products cannot overflow.
 - Floats (`f64`) are used for energy equations, PAL multiplication, percentages of reference values, and display conversions.
 
 **Why:** integers make stored values and aggregation exact and reproducible. The equations involve non-integer coefficients and need floats anyway.
@@ -99,6 +109,89 @@ Incomplete nutrient data is never an error in the initial phases: missing values
 
 Activity is not tracked: there are no activity records or exercise logs. The user selects a general activity level, which maps to a PAL value used in the energy calculation.
 
+## D11: rounding of integer division
+
+Every integer division in the calculation engine (fixed-point amount × grams ÷ reference quantity, and the divisions in D12) rounds half away from zero. Intermediate products use `i128`, so they cannot overflow. Display rounding (D16) uses the same rule.
+
+Example: `12345 × 7 / 100 = 864.15` → `864`; `12345 × 10 / 100 = 1234.5` → `1235`.
+
+**Why:** the result must be deterministic and documented; truncation would bias every total downwards.
+
+## D12: per-serving and per-portion division
+
+Per-serving and per-portion values are computed from the unrounded sum of products, with one division:
+
+```
+per_serving = sum(N_i × Q_i) / (R × S)
+portion     = sum(N_i × Q_i) × P / (R × W)
+```
+
+They are not derived from the rounded recipe total, so they are rounded once.
+
+## D13 / C4: phase 1 data
+
+Phase 1 tests use synthetic foods with round, hand-checkable values, clearly marked as not real composition data. CIQUAL golden fixtures are added in phase 2, once the CIQUAL licence has been checked (D3).
+
+**Why:** phase 1 has no database, and bundling CIQUAL values requires the licence check first.
+
+## D14: canonical units
+
+| Nutrient | Code | Canonical unit |
+|----------|------|----------------|
+| Energy | `energy_kj` | kJ |
+| Energy | `energy_kcal` | kcal |
+| Protein | `protein` | g |
+| Available carbohydrate | `carbohydrate_available` | g |
+| Sugars | `sugars` | g |
+| Fibre | `fibre` | g |
+| Fat | `fat` | g |
+| Saturated fat | `fat_saturated` | g |
+| Salt | `salt` | g |
+| Calcium | `calcium` | mg |
+| Iron | `iron` | mg |
+| Vitamin C | `vitamin_c` | mg |
+| Vitamin D | `vitamin_d` | µg |
+| Vitamin B12 | `vitamin_b12` | µg |
+
+Energy is stored as two nutrients, both taken from the source, and never converted from one to the other.
+
+**Why:** CIQUAL publishes both values under EU Regulation 1169/2011; they are not exactly related by 4.184 after the source's own rounding, and recomputing one from the other would lose provenance.
+
+## D15: phase 1 scope
+
+Phase 1 delivers the `nutrition-core` crate only. The `nutrition-store` and `nutrition-cli` crates are created when they are needed. "Print the content line by line" is a `Display` implementation on the calculation result.
+
+## D16: display precision
+
+| Unit | Decimals |
+|------|----------|
+| g | 1 |
+| mg | 1 |
+| µg | 2 |
+| kcal, kJ | 0 |
+
+Rounding for display only, half away from zero (D11).
+
+## D17: recipe items
+
+A recipe item is identified by its position in the recipe. The same food may appear more than once (for example, raw and cooked). Ingredients are removed by position, and the result's data-quality lists (unknown values, raw/cooked fallback) refer to positions.
+
+## D18: known zero
+
+A known value of 0 is normalized to the `Zero` state when the value is created. Negative amounts are rejected.
+
+**Why:** one representation per meaning keeps comparisons and tests simple.
+
+## D19: reference quantity
+
+Phase 1 accepts only compositions with a reference quantity of 100 g; any other value is an error. The common-denominator logic of [CALCULATION.md](CALCULATION.md) §2 is added if a source needs it.
+
+## D20: nutrients as data
+
+A nutrient is a value (code, name, canonical unit), not a variant of a Rust enum. The initial set (D7, D14) is provided as a constant list. Calculations take the list of nutrients to compute.
+
+**Why:** the set will grow and will come from the database (DATA_MODEL §2); an enum would need a code change for every new nutrient.
+
 ## Postponed
 
-The roadmap contradictions (C2: UI before frontend choice, C3: v0.1 scope, C4: phase-1 data) will be resolved later.
+The roadmap contradictions C2 (UI before frontend choice) and C3 (v0.1 scope) will be resolved later. C4 (phase-1 data) is resolved by D13.

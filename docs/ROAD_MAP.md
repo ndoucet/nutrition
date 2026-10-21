@@ -1,6 +1,6 @@
 # Development Roadmap
 
-> The inconsistencies between phases noted in [INIT_REVIEW.md](INIT_REVIEW.md) (C2, C3, C4) are known and postponed.
+> The inconsistencies between phases noted in the initial review (C2, C3) are known and postponed. C4 is resolved by D13.
 
 ## Phase 1: Core calculation engine
 
@@ -11,6 +11,8 @@
 - Implement per-serving calculations.
 - Handle incomplete nutrient data.
 - Add automated unit tests.
+
+Scope: the `nutrition-core` crate only, tested with synthetic foods (D13, D15).
 
 Deliverable: a tested Rust library that calculates recipe composition without a frontend:
 

@@ -23,9 +23,9 @@ Suggested fields:
 - `definition`: the convention used (source and method)
 - `description`, optional
 
-Initial set (D7):
+Initial set (D7; codes and canonical units in D14):
 
-- Energy.
+- Energy, as two nutrients: kJ and kcal.
 - Protein.
 - Available carbohydrate.
 - Sugars.
@@ -68,7 +68,7 @@ Suggested fields:
 Rules:
 
 - When the source provides both states (for example, two CIQUAL records for dry and cooked pasta), each state links to its own record. The pairing is done during import and documented in a mapping file.
-- When the source provides only one, both states use the same composition and `shared_with_other_state` is set. The calculation result lists these ingredients.
+- When the source provides only one, both states use the same composition and `shared_with_other_state` is set (`Compositions::Shared` in Rust). The calculation result lists these ingredients, whichever state was selected.
 - Values are per 100 g of edible portion. The weight entered by the user must be the edible weight (no peel, bones, etc.).
 - Other materially different forms (dried, fried, etc.) are separate foods.
 
@@ -88,19 +88,22 @@ Rules:
 
 - The amount is expressed per the reference quantity, in the nutrient's canonical unit.
 - A missing record is equivalent to `unknown`.
+- A known value of 0 is stored as `zero`; negative amounts are rejected (D18).
 - CIQUAL markers map directly to these states: a number → `known` (or `zero`), `traces` → `trace`, `< x` → `below_limit`, `-` → `unknown`.
 
 In Rust, the state is a type rather than a convention:
 
 ```rust
 enum NutrientValue {
-    Known(i64),               // fixed-point, 3 decimals
+    Known(MeasuredAmount),    // fixed-point, 3 decimals, always > 0
     Zero,
     Trace,
-    BelowLimit { limit: i64 },
+    BelowLimit { limit: MeasuredAmount },
     Unknown,
 }
 ```
+
+`MeasuredAmount` is a non-negative fixed-point amount that can only be built through validating constructors, so D18 holds by construction.
 
 ## 5. Data sources
 
@@ -139,6 +142,8 @@ Suggested fields:
 - `food_id`
 - `state`: `raw` or `cooked`
 - `quantity_g`: positive integer, the weight in the selected state
+
+Items are identified by their position in the recipe, and the same food may appear more than once (D17).
 
 If household units such as cups or tablespoons are added later, convert them using a food-specific conversion where possible. Do not assume that a volume unit has the same mass for every food.
 

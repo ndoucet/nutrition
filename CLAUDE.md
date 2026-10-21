@@ -2,7 +2,7 @@
 
 Rust library and local SQLite database that estimate the nutrient composition of recipes and compare intake with EFSA reference values. See [README.md](README.md).
 
-Status: design done, phase 1 (core calculation engine) not started.
+Status: phase 1 (core calculation engine) implemented in `crates/nutrition-core`.
 
 ## Docs map
 
@@ -19,20 +19,19 @@ Status: design done, phase 1 (core calculation engine) not started.
 
 ## Commands
 
-Once the Cargo workspace exists:
-
 ```sh
 cargo fmt --all
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
+cargo run -p nutrition-core --example print_recipe   # phase 1 demo
 ```
 
 ## Rules
 
 - `nutrition-core` does no I/O: no SQLite, filesystem, network, or UI dependency. Persistence lives in `nutrition-store`.
-- Numbers follow D1: integer grams for quantities, integer fixed-point (3 decimals of the canonical unit) for nutrient amounts, `i64` aggregation with a single division at the end. `f64` only for energy equations, PAL, percentages, and display. Round for display only.
+- Numbers follow D1: integer grams for quantities, integer fixed-point (3 decimals of the canonical unit) for nutrient amounts, aggregation in `i128` with `i64` results and a single division, rounded half away from zero (D11, D12). `f64` only for energy equations, PAL, percentages, and display. Round for display only.
 - Missing data follows D8: the unknown state stays distinct from zero in data and code, and results list the ingredients with unknown values. Never use 0 or another sentinel to mean unknown.
-- Incomplete data is not an error (C5). Errors are invalid input, unknown food, unsupported profile, database and import failures.
+- Incomplete data is not an error (C5). Errors are invalid input, unknown food, unsupported profile or method, overflow, database and import failures (ARCHITECTURE.md §5).
 - Domain constants (Henry coefficients, EFSA reference values) are implemented only after they are verified against the primary source and confirmed by a human (D5). Use the `domain-verifier` agent.
 - Every calculation change has tests with hand-checked expected values; float comparisons use explicit tolerances.
 - Profile data is never stored unless the user enables it, and never transmitted (C1).

@@ -12,8 +12,12 @@
 | DRV | Dietary Reference Value. General term for AR, PRI, AI, RI, and UL. |
 | Edible portion | The part of a food that is eaten (no peel, bones, etc.). Composition values are per 100 g of edible portion. |
 | EFSA | European Food Safety Authority. |
+| Fixed-point amount | A nutrient amount stored as an integer number of thousandths of its canonical unit (12.345 g → `12345`). See D1. |
 | PAL | Physical Activity Level. Ratio of total daily energy expenditure to BMR (e.g. 1.4 to 2.0 for adults). |
+| Portion | A quantity in grams of the finished dish. Requires the recipe's cooked weight. |
 | PRI | Population Reference Intake (EFSA). The intake that meets the needs of nearly all people in a population group. |
+| Reference quantity | The food quantity a composition is expressed for, 100 g of edible portion by default. |
 | RI | Reference Intake range (EFSA). A range for macronutrients, expressed as a percentage of energy intake. |
+| Serving | One of the user-defined number of servings of a recipe; not necessarily a standard dietary portion. |
 | Trace | A nutrient present in an amount too small to quantify. Counted as 0. |
 | UL | Tolerable Upper Intake Level (EFSA). The maximum chronic daily intake unlikely to cause harm. |

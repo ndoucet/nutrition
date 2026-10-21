@@ -36,9 +36,69 @@ See [Technology Choices](docs/TECHNOLOGY.md) and [Architecture](docs/ARCHITECTUR
 
 ## Project status
 
-Initial design and specification.
+Phase 1 done: `nutrition-core` is a tested Rust library that calculates the nutrient composition of a recipe, tested with synthetic foods (see [Decisions](docs/DECISIONS.md), D13 and D15). Try it with `cargo run -p nutrition-core --example print_recipe`.
 
-The first milestone is a tested Rust library that calculates the nutrient composition of a recipe using a small local food dataset.
+Next: phase 2, SQLite persistence and a small verified CIQUAL dataset.
+
+## Getting started
+
+### Install
+
+Requirements: a stable Rust toolchain (developed with Rust 1.87), installed for example with [rustup](https://rustup.rs). There is no database or other service to set up in phase 1.
+
+```sh
+git clone <repository-url> nutrition
+cd nutrition
+cargo build
+```
+
+### Run the example
+
+```sh
+cargo run -p nutrition-core --example print_recipe
+```
+
+It builds a recipe from synthetic foods (not real composition data), removes an ingredient, and prints the ingredients, the total and per-serving value of each nutrient, and which ingredients had unknown values. The source is in [`crates/nutrition-core/examples/print_recipe.rs`](crates/nutrition-core/examples/print_recipe.rs).
+
+### Use the library
+
+```rust
+use nutrition_core::{
+    calculate_recipe, initial_nutrients, Composition, Compositions, Error, Food, FoodCatalog,
+    FoodId, Grams, NutrientValue, Recipe, Servings, State,
+};
+
+fn main() -> Result<(), Error> {
+    // Amounts are thousandths of the canonical unit per 100 g: 31 g of protein → 31_000.
+    let mut foods = FoodCatalog::new();
+    foods.insert(Food::new(
+        FoodId(1),
+        "Lentils",
+        Compositions::Shared(
+            Composition::per_100g().with("protein", NutrientValue::known(31_000)?),
+        ),
+    ))?;
+
+    let mut recipe = Recipe::new("Lentil soup", Servings::new(2)?);
+    recipe.add_ingredient(FoodId(1), State::Cooked, Grams::new(150)?);
+
+    let result = calculate_recipe(&recipe, &foods, &initial_nutrients())?;
+    print!("{result}"); // Protein  46.5 g / 23.3 g
+    Ok(())
+}
+```
+
+Nutrients without a value are not an error: they count as 0 and the result lists the ingredients concerned.
+
+### Tests and checks
+
+```sh
+cargo test --workspace                                  # unit and integration tests
+cargo clippy --workspace --all-targets -- -D warnings   # lints
+cargo fmt --all                                         # formatting
+```
+
+Integration tests are in [`crates/nutrition-core/tests/`](crates/nutrition-core/tests/). Expected values are calculated by hand from [Calculations](docs/CALCULATION.md), with the arithmetic in comments.
 
 ## Documentation
 
@@ -51,7 +111,6 @@ The first milestone is a tested Rust library that calculates the nutrient compos
 - [Glossary](docs/GLOSSARY.md): nutrition terms and abbreviations.
 - [Roadmap](docs/ROAD_MAP.md): development phases and initial acceptance criteria.
 - [AI Agents](docs/AI_AGENTS.md): roles for AI-assisted development.
-- [Initial Review](docs/INIT_REVIEW.md): review of the first draft.
 - Contributing: development and testing workflow (to be written).
 
 ## Design principles

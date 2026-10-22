@@ -13,6 +13,13 @@ pub struct Nutrient {
 }
 
 impl Nutrient {
+    /// A nutrient with a stable `code`, a display `name`, and its canonical `unit`.
+    ///
+    /// # Arguments
+    ///
+    /// * `code` - stable identifier including the definition, e.g. `carbohydrate_available`.
+    /// * `name` - display name, e.g. `Available carbohydrate`.
+    /// * `unit` - canonical unit of every amount of this nutrient (D14).
     pub fn new(code: impl Into<String>, name: impl Into<String>, unit: Unit) -> Self {
         Nutrient {
             code: code.into(),
@@ -26,10 +33,12 @@ impl Nutrient {
         &self.code
     }
 
+    /// Display name, e.g. `Available carbohydrate`.
     pub fn name(&self) -> &str {
         &self.name
     }
 
+    /// Canonical unit in which all amounts of this nutrient are expressed (D14).
     pub fn unit(&self) -> Unit {
         self.unit
     }
@@ -68,6 +77,7 @@ pub fn initial_nutrients() -> Vec<Nutrient> {
 pub struct MeasuredAmount(i64);
 
 impl MeasuredAmount {
+    /// The amount in thousandths of the canonical unit.
     pub fn milli(self) -> i64 {
         self.0
     }
@@ -87,6 +97,10 @@ pub enum NutrientValue {
 
 impl NutrientValue {
     /// A measured amount. 0 becomes [`NutrientValue::Zero`] (D18); negative is an error.
+    ///
+    /// # Arguments
+    ///
+    /// * `milli` - measured amount per reference quantity, in thousandths of the canonical unit.
     pub fn known(milli: i64) -> Result<Self, Error> {
         match milli {
             0 => Ok(NutrientValue::Zero),
@@ -96,6 +110,10 @@ impl NutrientValue {
     }
 
     /// Below a detection or reporting limit; `limit` is kept for provenance.
+    ///
+    /// # Arguments
+    ///
+    /// * `limit` - detection or reporting limit per reference quantity, in thousandths of the canonical unit.
     pub fn below_limit(limit: i64) -> Result<Self, Error> {
         if limit < 0 {
             return Err(Error::NegativeAmount { milli: limit });
@@ -121,6 +139,7 @@ impl NutrientValue {
 mod tests {
     use super::*;
 
+    /// A known 0 becomes `Zero` and a negative amount is rejected (D18).
     #[test]
     fn known_zero_is_normalized_to_zero_state() {
         assert_eq!(NutrientValue::known(0), Ok(NutrientValue::Zero));
@@ -131,6 +150,7 @@ mod tests {
         );
     }
 
+    /// The initial nutrient set has 14 distinct codes (D7).
     #[test]
     fn initial_set_has_unique_codes() {
         let nutrients = initial_nutrients();

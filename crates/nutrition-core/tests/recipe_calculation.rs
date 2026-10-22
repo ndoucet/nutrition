@@ -16,6 +16,12 @@ use nutrition_core::{
     FoodCatalog, FoodId, Grams, Nutrient, NutrientValue, Recipe, RecipeItem, Servings, State, Unit,
 };
 
+/// A recipe of `s` servings from `(food, state, grams)` items, in order.
+///
+/// # Arguments
+///
+/// * `items` - ingredients as (food, state, quantity in grams), in recipe order.
+/// * `s` - number of servings.
 fn recipe(items: &[(FoodId, State, i64)], s: i64) -> Recipe {
     let mut recipe = Recipe::new("Synthetic recipe", servings(s));
     for &(food, state, g) in items {
@@ -28,6 +34,7 @@ fn recipe(items: &[(FoodId, State, i64)], s: i64) -> Recipe {
 // §2 Scaling by reference quantity
 // ---------------------------------------------------------------------------
 
+/// The CALCULATION.md §2 example: 31 g / 100 g at 150 g is 46.5 g.
 #[test]
 fn scaling_reproduces_spec_example_31g_per_100g_times_150g() {
     // CALCULATION.md §2: 31000 × 150 = 4_650_000; / 100 = 46_500 (46.5 g)
@@ -44,6 +51,7 @@ fn scaling_reproduces_spec_example_31g_per_100g_times_150g() {
     );
 }
 
+/// 100 g of a food gives its per-100 g value unchanged.
 #[test]
 fn scaling_100g_returns_the_per_100g_value() {
     // 31000 × 100 / 100 = 31000
@@ -51,6 +59,7 @@ fn scaling_100g_returns_the_per_100g_value() {
     assert_eq!(total(&result, "protein"), 31_000);
 }
 
+/// 1 g, the smallest quantity, scales to one hundredth of the value.
 #[test]
 fn scaling_one_gram_is_the_smallest_quantity() {
     // 31000 × 1 / 100 = 310
@@ -58,6 +67,7 @@ fn scaling_one_gram_is_the_smallest_quantity() {
     assert_eq!(total(&result, "protein"), 310);
 }
 
+/// A large quantity (5 kg) scales without loss.
 #[test]
 fn scaling_large_realistic_quantity() {
     // Oil fat 100.000 g / 100 g, 5 kg: 100_000 × 5000 / 100 = 5_000_000 (5000 g)
@@ -65,6 +75,7 @@ fn scaling_large_realistic_quantity() {
     assert_eq!(total(&result, "fat"), 5_000_000);
 }
 
+/// Scaling works for a milligram nutrient as for a gram one.
 #[test]
 fn scaling_works_in_milligram_nutrient() {
     // Pepper raw vitamin C 120.000 mg / 100 g, 25 g: 120_000 × 25 / 100 = 30_000 (30 mg)
@@ -76,6 +87,7 @@ fn scaling_works_in_milligram_nutrient() {
 // §2, §12, D11 Rounding
 // ---------------------------------------------------------------------------
 
+/// An exact half rounds away from zero, not down or to even (D11).
 #[test]
 fn rounding_exact_half_goes_away_from_zero() {
     // D11: 12345 × 10 / 100 = 1234.5 → 1235 (truncation and banker's give 1234)
@@ -83,6 +95,7 @@ fn rounding_exact_half_goes_away_from_zero() {
     assert_eq!(total(&result, "protein"), 1_235);
 }
 
+/// Below half rounds down (D11).
 #[test]
 fn rounding_below_half_goes_down() {
     // D11: 12345 × 7 / 100 = 864.15 → 864
@@ -90,6 +103,7 @@ fn rounding_below_half_goes_down() {
     assert_eq!(total(&result, "protein"), 864);
 }
 
+/// Amounts below one thousandth round to 1 at half and to 0 below it.
 #[test]
 fn rounding_of_sub_thousandth_amounts() {
     // 1 × 50 / 100 = 0.5 → 1 ; 1 × 49 / 100 = 0.49 → 0
@@ -103,6 +117,8 @@ fn rounding_of_sub_thousandth_amounts() {
 // §3 Multi-ingredient summation, single final division
 // ---------------------------------------------------------------------------
 
+/// Ingredients are summed before the single division, not rounded one by one
+/// (D12).
 #[test]
 fn summation_divides_once_not_per_ingredient() {
     // S_p = 12345 × 10 + 1 × 50 = 123_450 + 50 = 123_500; / 100 = 1235
@@ -114,6 +130,7 @@ fn summation_divides_once_not_per_ingredient() {
     assert_eq!(total(&result, "protein"), 1_235);
 }
 
+/// The same food twice is two items, summed before the single division.
 #[test]
 fn summation_same_food_twice_divides_once() {
     // D17: the same food may appear twice.
@@ -129,6 +146,7 @@ fn summation_same_food_twice_divides_once() {
     assert_eq!(result.ingredients()[1].position, 1);
 }
 
+/// Each nutrient is summed over items in different states independently.
 #[test]
 fn summation_over_several_nutrients_and_states() {
     // pasta raw 200 g, bean 100 g, oil 10 g
@@ -151,6 +169,7 @@ fn summation_over_several_nutrients_and_states() {
     assert!(unknown_items(&result, "fat").is_empty());
 }
 
+/// Totals come out in the order of the requested nutrient list.
 #[test]
 fn results_follow_input_nutrient_order() {
     let order = nutrients(&["vitamin_c", "protein", "fat"]);
@@ -164,12 +183,15 @@ fn results_follow_input_nutrient_order() {
     assert_eq!(codes, vec!["vitamin_c", "protein", "fat"]);
 }
 
+/// A nutrient that was not requested has no total.
 #[test]
 fn nutrient_not_requested_is_absent_from_result() {
     let result = calculate(&recipe(&[(BEAN, State::Raw, 100)], 1));
     assert!(result.nutrient("iron").is_none());
 }
 
+/// All 14 initial nutrients are calculated; those without records are
+/// unknown.
 #[test]
 fn full_initial_nutrient_set_is_calculated() {
     // 14 nutrients; bean has only protein (known) and fat (trace); all others unknown.
@@ -190,6 +212,8 @@ fn full_initial_nutrient_set_is_calculated() {
 // §4, D12 Per-serving values
 // ---------------------------------------------------------------------------
 
+/// The per-serving value divides the unrounded sum, not the rounded total
+/// (D12).
 #[test]
 fn per_serving_divides_the_unrounded_sum_once() {
     // S_p = 123_450; total = 1235.
@@ -200,6 +224,7 @@ fn per_serving_divides_the_unrounded_sum_once() {
     assert_eq!(per_serving(&result, "protein"), 617);
 }
 
+/// The per-serving value rounds half away from zero.
 #[test]
 fn per_serving_rounds_half_away_from_zero() {
     // bean 3 g: S_p = 93_000; S = 4 → 93_000 / 400 = 232.5 → 233
@@ -207,6 +232,7 @@ fn per_serving_rounds_half_away_from_zero() {
     assert_eq!(per_serving(&result, "protein"), 233);
 }
 
+/// With one serving, the per-serving value equals the total.
 #[test]
 fn one_serving_equals_total() {
     let result = calculate(&recipe(&[(BEAN, State::Raw, 150)], 1));
@@ -214,6 +240,7 @@ fn one_serving_equals_total() {
     assert_eq!(result.servings(), servings(1));
 }
 
+/// Changing the servings changes the per-serving value but not the total.
 #[test]
 fn set_servings_changes_per_serving_value() {
     // 4_650_000 / (100 × 3) = 15_500
@@ -229,6 +256,7 @@ fn set_servings_changes_per_serving_value() {
 // §4, D12 Per-portion values
 // ---------------------------------------------------------------------------
 
+/// A portion divides the unrounded sum, not the rounded total (D12).
 #[test]
 fn portion_divides_the_unrounded_sum_once() {
     // S_p = 123_450, W = 300, P = 150
@@ -243,6 +271,7 @@ fn portion_divides_the_unrounded_sum_once() {
     );
 }
 
+/// A portion value rounds half away from zero.
 #[test]
 fn portion_rounds_half_away_from_zero() {
     // S_p = 3_100_000, W = 400, P = 1 → 3_100_000 / 40_000 = 77.5 → 78
@@ -255,6 +284,7 @@ fn portion_rounds_half_away_from_zero() {
     );
 }
 
+/// A portion equal to the cooked weight is the whole total.
 #[test]
 fn portion_equal_to_cooked_weight_is_the_total() {
     // 4_650_000 × 250 / (100 × 250) = 46_500
@@ -267,6 +297,7 @@ fn portion_equal_to_cooked_weight_is_the_total() {
     );
 }
 
+/// A portion needs a known cooked weight.
 #[test]
 fn portion_without_cooked_weight_is_an_error() {
     let result = calculate(&recipe(&[(BEAN, State::Raw, 150)], 1));
@@ -276,6 +307,7 @@ fn portion_without_cooked_weight_is_an_error() {
     );
 }
 
+/// Clearing the cooked weight makes it unknown again.
 #[test]
 fn portion_after_clearing_cooked_weight_is_an_error() {
     let mut r = recipe(&[(BEAN, State::Raw, 150)], 1);
@@ -288,6 +320,7 @@ fn portion_after_clearing_cooked_weight_is_an_error() {
     );
 }
 
+/// A portion of a nutrient absent from the result is an error.
 #[test]
 fn portion_of_nutrient_not_calculated_is_an_error() {
     let mut r = recipe(&[(BEAN, State::Raw, 150)], 1);
@@ -308,6 +341,8 @@ fn portion_of_nutrient_not_calculated_is_an_error() {
 const KNOWN_MILLI: i64 = 2_000; // 2.000 g / 100 g; at 50 g contributes 2000 × 50 / 100 = 1000
 const STATE_GRAMS: i64 = 50;
 
+/// One value of each state, named for assertion messages; `known` comes first
+/// and `unknown` last.
 fn states() -> [(&'static str, NutrientValue); 5] {
     [
         ("known", known(KNOWN_MILLI)),
@@ -319,6 +354,12 @@ fn states() -> [(&'static str, NutrientValue); 5] {
     ]
 }
 
+/// A catalog of shared-composition foods with ids from 100, one per value,
+/// each holding that value for protein.
+///
+/// # Arguments
+///
+/// * `values` - protein value of each food, per 100 g; amounts are in thousandths of a gram.
 fn state_catalog(values: &[NutrientValue]) -> FoodCatalog {
     let mut catalog = FoodCatalog::new();
     for (i, v) in values.iter().enumerate() {
@@ -333,6 +374,11 @@ fn state_catalog(values: &[NutrientValue]) -> FoodCatalog {
     catalog
 }
 
+/// A one-serving recipe of 50 g of each of the first `n` state foods.
+///
+/// # Arguments
+///
+/// * `n` - number of state foods to use, from id 100.
 fn state_recipe(n: usize) -> Recipe {
     let mut r = Recipe::new("States", servings(1));
     for i in 0..n {
@@ -341,6 +387,7 @@ fn state_recipe(n: usize) -> Recipe {
     r
 }
 
+/// Only a known value contributes, and only unknown is listed (D8).
 #[test]
 fn each_value_state_alone() {
     // known → 1000; zero, trace, below_limit, unknown → 0 (D8, initial phase).
@@ -369,6 +416,8 @@ fn each_value_state_alone() {
     }
 }
 
+/// Contributions and unknown positions combine correctly for every pair of
+/// states.
 #[test]
 fn every_pair_of_value_states() {
     // Each ingredient 50 g; total = 1000 × (number of known items),
@@ -404,6 +453,7 @@ fn every_pair_of_value_states() {
     }
 }
 
+/// A missing record is unknown and listed, not treated as zero.
 #[test]
 fn missing_record_is_unknown_not_zero() {
     // DATA_MODEL §4: a missing record is equivalent to unknown.
@@ -415,6 +465,7 @@ fn missing_record_is_unknown_not_zero() {
     assert_eq!(unknown_items(&result, "vitamin_c"), vec![0]);
 }
 
+/// A known 0 becomes the `Zero` state (D18).
 #[test]
 fn known_zero_is_normalized_to_zero_state() {
     // D18
@@ -422,6 +473,7 @@ fn known_zero_is_normalized_to_zero_state() {
     assert!(matches!(NutrientValue::known(5), Ok(NutrientValue::Known(a)) if a.milli() == 5));
 }
 
+/// Negative known amounts and limits are rejected (D18).
 #[test]
 fn negative_amounts_are_rejected() {
     // D18
@@ -439,6 +491,8 @@ fn negative_amounts_are_rejected() {
 // §11, D8 Unknown-items list
 // ---------------------------------------------------------------------------
 
+/// Every unknown position is listed, whether explicit or a missing record,
+/// including a repeated food.
 #[test]
 fn unknown_items_lists_every_position_per_nutrient() {
     // 0: pasta cooked (vit C explicit unknown), 1: bean (vit C missing),
@@ -463,6 +517,7 @@ fn unknown_items_lists_every_position_per_nutrient() {
 // §2, D9 Raw / cooked selection and shared fallback
 // ---------------------------------------------------------------------------
 
+/// A raw item uses the raw composition.
 #[test]
 fn raw_state_uses_raw_composition() {
     // 12000 × 200 / 100 = 24_000
@@ -471,6 +526,7 @@ fn raw_state_uses_raw_composition() {
     assert!(unknown_items(&result, "vitamin_c").is_empty()); // raw vit C is zero
 }
 
+/// A cooked item uses the cooked composition.
 #[test]
 fn cooked_state_uses_cooked_composition() {
     // 5000 × 200 / 100 = 10_000
@@ -479,6 +535,7 @@ fn cooked_state_uses_cooked_composition() {
     assert_eq!(unknown_items(&result, "vitamin_c"), vec![0]); // cooked vit C unknown
 }
 
+/// One food can appear both raw and cooked in a recipe (D17).
 #[test]
 fn same_food_raw_and_cooked_in_one_recipe() {
     // D17: 12000 × 100 + 5000 × 100 = 1_700_000 → 17_000
@@ -492,6 +549,8 @@ fn same_food_raw_and_cooked_in_one_recipe() {
     assert!(result.shared_composition_items().is_empty());
 }
 
+/// A shared composition gives the same values in both states; a distinct one
+/// does not.
 #[test]
 fn shared_food_uses_same_composition_for_both_states() {
     // bean cooked 150 g → same 46_500 as raw
@@ -513,6 +572,7 @@ fn shared_food_uses_same_composition_for_both_states() {
     );
 }
 
+/// Ingredients whose food has a shared composition are listed by position.
 #[test]
 fn shared_composition_items_lists_shared_foods_by_position() {
     // ASSUMPTION (DATA_MODEL §3): every ingredient whose food has a shared
@@ -538,6 +598,8 @@ fn shared_composition_items_lists_shared_foods_by_position() {
     assert_eq!(total(&result, "vitamin_c"), 60_000);
 }
 
+/// Ingredient lines carry position, food, name, state, quantity, and the
+/// shared flag.
 #[test]
 fn ingredient_lines_describe_the_recipe() {
     let result = calculate(&recipe(
@@ -562,6 +624,7 @@ fn ingredient_lines_describe_the_recipe() {
 // D17 Removal by position
 // ---------------------------------------------------------------------------
 
+/// Adding an ingredient returns its 0-based position.
 #[test]
 fn add_ingredient_returns_its_position() {
     let mut r = Recipe::new("Positions", servings(1));
@@ -571,6 +634,8 @@ fn add_ingredient_returns_its_position() {
     assert_eq!(r.items().len(), 3);
 }
 
+/// Removing an ingredient returns it, shifts later positions, and removes its
+/// contribution.
 #[test]
 fn remove_ingredient_by_position_shifts_later_positions() {
     // before: 0 bean 100, 1 oil 10, 2 pasta cooked 100; remove 1
@@ -605,6 +670,7 @@ fn remove_ingredient_by_position_shifts_later_positions() {
     assert_eq!(result.ingredients()[1].position, 1);
 }
 
+/// Removing one of two identical items keeps the other.
 #[test]
 fn remove_one_of_two_identical_items() {
     // HALF 10 g twice, remove 0 → 1235 left
@@ -613,6 +679,7 @@ fn remove_one_of_two_identical_items() {
     assert_eq!(total(&calculate(&r), "protein"), 1_235);
 }
 
+/// Removing past the end is an error and leaves the recipe unchanged.
 #[test]
 fn remove_out_of_range_is_an_error() {
     let mut r = recipe(&[(BEAN, State::Raw, 1), (OIL, State::Raw, 1)], 1);
@@ -628,6 +695,7 @@ fn remove_out_of_range_is_an_error() {
     );
 }
 
+/// A recipe left with no ingredient is an empty-recipe error.
 #[test]
 fn removing_last_ingredient_leaves_empty_recipe() {
     let mut r = recipe(&[(BEAN, State::Raw, 100)], 1);
@@ -642,6 +710,7 @@ fn removing_last_ingredient_leaves_empty_recipe() {
 // Errors (§4, §12 "validate inputs", D6, D19, DATA_MODEL §11)
 // ---------------------------------------------------------------------------
 
+/// An ingredient whose food is not in the catalog is an error.
 #[test]
 fn unknown_food_is_an_error() {
     let r = recipe(&[(BEAN, State::Raw, 100), (FoodId(99), State::Raw, 10)], 1);
@@ -653,6 +722,7 @@ fn unknown_food_is_an_error() {
     );
 }
 
+/// A recipe with no ingredient cannot be calculated.
 #[test]
 fn empty_recipe_is_an_error() {
     let r = Recipe::new("Empty", servings(1));
@@ -662,6 +732,7 @@ fn empty_recipe_is_an_error() {
     );
 }
 
+/// A reference quantity other than 100 g is rejected (D19).
 #[test]
 fn non_100g_reference_quantity_is_an_error() {
     // D19
@@ -675,6 +746,7 @@ fn non_100g_reference_quantity_is_an_error() {
     );
 }
 
+/// Quantities must be positive whole grams (D6).
 #[test]
 fn zero_and_negative_quantities_are_rejected() {
     assert_eq!(Grams::new(0), Err(Error::InvalidQuantity { grams: 0 }));
@@ -687,6 +759,7 @@ fn zero_and_negative_quantities_are_rejected() {
     assert_eq!(Grams::HUNDRED.get(), 100);
 }
 
+/// Servings must be positive.
 #[test]
 fn zero_and_negative_servings_are_rejected() {
     assert_eq!(
@@ -700,6 +773,7 @@ fn zero_and_negative_servings_are_rejected() {
     assert_eq!(Servings::new(1).map(Servings::get), Ok(1));
 }
 
+/// Inserting a duplicate food id is an error and keeps the original food.
 #[test]
 fn duplicate_food_in_catalog_is_an_error() {
     let mut c = catalog();
@@ -718,6 +792,8 @@ fn duplicate_food_in_catalog_is_an_error() {
     );
 }
 
+/// A food without any nutrient record calculates, with every value unknown
+/// (C5).
 #[test]
 fn incomplete_data_is_not_an_error() {
     // C5: a food with no nutrient record at all still calculates.
@@ -740,6 +816,7 @@ fn incomplete_data_is_not_an_error() {
 // D14, D16, D20 Nutrients, units and display precision
 // ---------------------------------------------------------------------------
 
+/// The initial set has the D14 codes and units, each with a name.
 #[test]
 fn initial_nutrients_match_d14() {
     let expected = [
@@ -770,6 +847,7 @@ fn initial_nutrients_match_d14() {
     }
 }
 
+/// A nutrient defined by the caller is calculated like any other (D20).
 #[test]
 fn custom_nutrient_is_data() {
     // D20: a nutrient not in the initial set can be calculated.
@@ -780,6 +858,7 @@ fn custom_nutrient_is_data() {
     assert_eq!(total(&result, "protein"), 46_500);
 }
 
+/// Unit symbols and display decimals follow D16.
 #[test]
 fn unit_symbols_and_display_decimals_match_d16() {
     assert_eq!(Unit::Gram.symbol(), "g");
@@ -794,6 +873,7 @@ fn unit_symbols_and_display_decimals_match_d16() {
     assert_eq!(Unit::Kilocalorie.display_decimals(), 0);
 }
 
+/// Display rounds half away from zero at each unit's precision (D16).
 #[test]
 fn amount_display_rounds_half_away_from_zero() {
     let show = |milli: i64, unit: Unit| Amount::from_milli(milli).display(unit).to_string();
@@ -812,6 +892,7 @@ fn amount_display_rounds_half_away_from_zero() {
 // D15 Display smoke test
 // ---------------------------------------------------------------------------
 
+/// The display prints the recipe line by line, numbering ingredients from 1.
 #[test]
 fn display_prints_recipe_line_by_line() {
     // bean 300 g raw (pos 0), oil 40 g raw (pos 1), 2 servings

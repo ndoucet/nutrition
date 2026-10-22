@@ -9,6 +9,8 @@ use nutrition_core::{
     FoodId, Grams, NutrientValue, Recipe, Servings, State,
 };
 
+/// Builds the demo recipe, then prints its composition and a 300 g portion of
+/// protein.
 fn main() -> Result<(), Error> {
     let pasta = FoodId(1);
     let oil = FoodId(2);

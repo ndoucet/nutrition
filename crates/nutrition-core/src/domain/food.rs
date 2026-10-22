@@ -11,6 +11,11 @@ use crate::Error;
 pub struct FoodId(pub i64);
 
 impl fmt::Display for FoodId {
+    /// Formats as `#<id>`, e.g. `#42`.
+    ///
+    /// # Arguments
+    ///
+    /// * `f` - formatter that receives the text.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "#{}", self.0)
     }
@@ -24,6 +29,11 @@ pub enum State {
 }
 
 impl fmt::Display for State {
+    /// Formats as `raw` or `cooked`.
+    ///
+    /// # Arguments
+    ///
+    /// * `f` - formatter that receives the text.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             State::Raw => "raw",
@@ -40,6 +50,11 @@ pub struct Composition {
 }
 
 impl Composition {
+    /// An empty composition per `reference_quantity` of edible portion.
+    ///
+    /// # Arguments
+    ///
+    /// * `reference_quantity` - quantity of edible portion the values refer to, in grams.
     pub fn new(reference_quantity: Grams) -> Self {
         Composition {
             reference_quantity,
@@ -53,16 +68,31 @@ impl Composition {
     }
 
     /// Builder form of [`Composition::set`].
+    ///
+    /// # Arguments
+    ///
+    /// * `nutrient_code` - code of the nutrient, e.g. `protein`.
+    /// * `value` - value per reference quantity; amounts are in thousandths of the nutrient's canonical unit.
     pub fn with(mut self, nutrient_code: impl Into<String>, value: NutrientValue) -> Self {
         self.set(nutrient_code, value);
         self
     }
 
+    /// Sets the value of a nutrient, replacing any previous one.
+    ///
+    /// # Arguments
+    ///
+    /// * `nutrient_code` - code of the nutrient, e.g. `protein`.
+    /// * `value` - value per reference quantity; amounts are in thousandths of the nutrient's canonical unit.
     pub fn set(&mut self, nutrient_code: impl Into<String>, value: NutrientValue) {
         self.values.insert(nutrient_code.into(), value);
     }
 
     /// The value for a nutrient; a missing record is [`NutrientValue::Unknown`].
+    ///
+    /// # Arguments
+    ///
+    /// * `nutrient_code` - code of the nutrient, e.g. `protein`.
     pub fn value(&self, nutrient_code: &str) -> NutrientValue {
         self.values
             .get(nutrient_code)
@@ -70,6 +100,7 @@ impl Composition {
             .unwrap_or(NutrientValue::Unknown)
     }
 
+    /// Quantity of edible portion the values refer to, usually 100 g.
     pub fn reference_quantity(&self) -> Grams {
         self.reference_quantity
     }
@@ -94,6 +125,13 @@ pub struct Food {
 }
 
 impl Food {
+    /// A food with its identifier, display name, and compositions.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - identifier of the food, unique within a catalog.
+    /// * `name` - display name of the food.
+    /// * `compositions` - nutrient values, shared or per state.
     pub fn new(id: FoodId, name: impl Into<String>, compositions: Compositions) -> Self {
         Food {
             id,
@@ -102,19 +140,26 @@ impl Food {
         }
     }
 
+    /// Identifier of the food.
     pub fn id(&self) -> FoodId {
         self.id
     }
 
+    /// Display name of the food.
     pub fn name(&self) -> &str {
         &self.name
     }
 
+    /// The compositions of the food, shared or per state.
     pub fn compositions(&self) -> &Compositions {
         &self.compositions
     }
 
     /// The composition for `state`, falling back to the shared one.
+    ///
+    /// # Arguments
+    ///
+    /// * `state` - preparation state of the food as used in the recipe.
     pub fn composition(&self, state: State) -> &Composition {
         match (&self.compositions, state) {
             (Compositions::Shared(composition), _) => composition,
@@ -136,10 +181,16 @@ pub struct FoodCatalog {
 }
 
 impl FoodCatalog {
+    /// An empty catalog.
     pub fn new() -> Self {
         FoodCatalog::default()
     }
 
+    /// Adds a food; a food with the same identifier already present is an error.
+    ///
+    /// # Arguments
+    ///
+    /// * `food` - the food to add.
     pub fn insert(&mut self, food: Food) -> Result<(), Error> {
         match self.foods.entry(food.id()) {
             Entry::Occupied(entry) => Err(Error::DuplicateFood {
@@ -152,14 +203,21 @@ impl FoodCatalog {
         }
     }
 
+    /// The food with identifier `id`, if present.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - identifier of the food.
     pub fn get(&self, id: FoodId) -> Option<&Food> {
         self.foods.get(&id)
     }
 
+    /// Number of foods in the catalog.
     pub fn len(&self) -> usize {
         self.foods.len()
     }
 
+    /// True when the catalog holds no food.
     pub fn is_empty(&self) -> bool {
         self.foods.is_empty()
     }

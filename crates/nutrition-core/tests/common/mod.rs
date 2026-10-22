@@ -35,18 +35,34 @@ pub const PEPPER: FoodId = FoodId(6);
 /// Shared composition with a 50 g reference quantity (unsupported, D19).
 pub const ODD_REFERENCE: FoodId = FoodId(50);
 
+/// A known fixture value of `milli` thousandths; panics on a negative amount.
+///
+/// # Arguments
+///
+/// * `milli` - amount in thousandths of the canonical unit.
 pub fn known(milli: i64) -> NutrientValue {
     NutrientValue::known(milli).expect("non-negative fixture amount")
 }
 
+/// A fixture quantity of `g` grams; panics unless positive.
+///
+/// # Arguments
+///
+/// * `g` - quantity in grams.
 pub fn grams(g: i64) -> Grams {
     Grams::new(g).expect("positive fixture quantity")
 }
 
+/// A fixture number of servings; panics unless positive.
+///
+/// # Arguments
+///
+/// * `s` - number of servings.
 pub fn servings(s: i64) -> Servings {
     Servings::new(s).expect("positive fixture servings")
 }
 
+/// The catalog of all synthetic fixture foods described above.
 pub fn catalog() -> FoodCatalog {
     let mut catalog = FoodCatalog::new();
 
@@ -123,6 +139,10 @@ pub fn catalog() -> FoodCatalog {
 }
 
 /// The nutrients from the initial set (D14) with the given codes, in the given order.
+///
+/// # Arguments
+///
+/// * `codes` - nutrient codes from the initial set, e.g. `protein`.
 pub fn nutrients(codes: &[&str]) -> Vec<Nutrient> {
     let all = initial_nutrients();
     codes
@@ -141,11 +161,22 @@ pub fn test_nutrients() -> Vec<Nutrient> {
     nutrients(&["protein", "fat", "vitamin_c"])
 }
 
+/// Calculates `recipe` against the fixture catalog and [`test_nutrients`];
+/// panics on error.
+///
+/// # Arguments
+///
+/// * `recipe` - recipe that uses only fixture foods.
 pub fn calculate(recipe: &Recipe) -> RecipeComposition {
     calculate_recipe(recipe, &catalog(), &test_nutrients()).expect("valid recipe")
 }
 
 /// Total (thousandths) of a nutrient in a result.
+///
+/// # Arguments
+///
+/// * `result` - result of a calculation.
+/// * `code` - code of a calculated nutrient.
 pub fn total(result: &RecipeComposition, code: &str) -> i64 {
     result
         .nutrient(code)
@@ -154,6 +185,12 @@ pub fn total(result: &RecipeComposition, code: &str) -> i64 {
         .milli()
 }
 
+/// Per-serving amount (thousandths) of a nutrient in a result.
+///
+/// # Arguments
+///
+/// * `result` - result of a calculation.
+/// * `code` - code of a calculated nutrient.
 pub fn per_serving(result: &RecipeComposition, code: &str) -> i64 {
     result
         .nutrient(code)
@@ -162,6 +199,12 @@ pub fn per_serving(result: &RecipeComposition, code: &str) -> i64 {
         .milli()
 }
 
+/// Positions of the ingredients with an unknown value for a nutrient.
+///
+/// # Arguments
+///
+/// * `result` - result of a calculation.
+/// * `code` - code of a calculated nutrient.
 pub fn unknown_items(result: &RecipeComposition, code: &str) -> Vec<usize> {
     result
         .nutrient(code)

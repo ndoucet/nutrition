@@ -34,14 +34,17 @@ pub struct NutrientTotal {
 }
 
 impl NutrientTotal {
+    /// The nutrient this total is for.
     pub fn nutrient(&self) -> &Nutrient {
         &self.nutrient
     }
 
+    /// Amount in the whole recipe, rounded once from the unrounded sum (D12).
     pub fn total(&self) -> Amount {
         self.total
     }
 
+    /// Amount per serving, divided once from the unrounded sum (D12).
     pub fn per_serving(&self) -> Amount {
         self.per_serving
     }
@@ -67,14 +70,17 @@ pub struct RecipeComposition {
 }
 
 impl RecipeComposition {
+    /// Name of the recipe the result was calculated for.
     pub fn recipe_name(&self) -> &str {
         &self.recipe_name
     }
 
+    /// Number of servings used for the per-serving values.
     pub fn servings(&self) -> Servings {
         self.servings
     }
 
+    /// Ingredients in recipe order, with their positions from 0.
     pub fn ingredients(&self) -> &[IngredientLine] {
         &self.ingredients
     }
@@ -84,6 +90,11 @@ impl RecipeComposition {
         &self.nutrients
     }
 
+    /// The total for the nutrient with `code`, if it was calculated.
+    ///
+    /// # Arguments
+    ///
+    /// * `code` - nutrient code, e.g. `protein`.
     pub fn nutrient(&self, code: &str) -> Option<&NutrientTotal> {
         self.nutrients.iter().find(|t| t.nutrient.code() == code)
     }
@@ -99,6 +110,11 @@ impl RecipeComposition {
 
     /// Amount of a nutrient in a portion of `portion` grams of the finished dish:
     /// `sum(N_i × Q_i) × P / (R × W)` (CALCULATION.md §4, D12).
+    ///
+    /// # Arguments
+    ///
+    /// * `nutrient_code` - code of a nutrient included in this result, e.g. `protein`.
+    /// * `portion` - weight of the portion of finished dish, in grams.
     pub fn portion(&self, nutrient_code: &str, portion: Grams) -> Result<Amount, Error> {
         let cooked_weight = self.cooked_weight.ok_or(Error::CookedWeightUnknown)?;
         let total = self
@@ -122,6 +138,12 @@ const SUPPORTED_REFERENCE: Grams = Grams::HUNDRED;
 ///
 /// Every ingredient must be in `foods` with a 100 g reference quantity. Missing
 /// nutrient values are not an error: they contribute 0 and are listed (D8, C5).
+///
+/// # Arguments
+///
+/// * `recipe` - the recipe to calculate; it must have at least one ingredient.
+/// * `foods` - catalog holding every food the recipe uses.
+/// * `nutrients` - nutrients to calculate, with distinct codes; results keep this order.
 pub fn calculate_recipe(
     recipe: &Recipe,
     foods: &FoodCatalog,
@@ -201,10 +223,21 @@ pub fn calculate_recipe(
     })
 }
 
+/// Width in characters of the longest cell, or 0 when there is none.
+///
+/// # Arguments
+///
+/// * `cells` - text of each cell in the column.
 fn column_width<'a>(cells: impl Iterator<Item = &'a str>) -> usize {
     cells.map(|c| c.chars().count()).max().unwrap_or(0)
 }
 
+/// Converts a rounded `i128` amount to an [`Amount`]; outside `i64` is
+/// [`Error::Overflow`].
+///
+/// # Arguments
+///
+/// * `milli` - amount in thousandths of the canonical unit.
 fn to_amount(milli: i128) -> Result<Amount, Error> {
     i64::try_from(milli)
         .map(Amount::from_milli)
@@ -212,6 +245,12 @@ fn to_amount(milli: i128) -> Result<Amount, Error> {
 }
 
 impl fmt::Display for RecipeComposition {
+    /// Prints the recipe header, the ingredients numbered from 1, the aligned
+    /// nutrient table, and the unknown and shared-composition notes.
+    ///
+    /// # Arguments
+    ///
+    /// * `f` - formatter that receives the text.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} ({} servings", self.recipe_name, self.servings.get())?;
         if let Some(weight) = self.cooked_weight {
@@ -281,6 +320,13 @@ mod tests {
     use crate::domain::food::{Composition, Compositions, Food};
     use crate::domain::quantity::Unit;
 
+    /// A one-ingredient recipe of `grams` of a food holding `milli` of nutrient `x`
+    /// per 100 g.
+    ///
+    /// # Arguments
+    ///
+    /// * `milli` - amount of nutrient `x` per 100 g, in thousandths of a gram.
+    /// * `grams` - quantity of the food in the recipe, in grams.
     fn single_food_recipe(milli: i64, grams: i64) -> (Recipe, FoodCatalog) {
         let mut foods = FoodCatalog::new();
         foods
@@ -297,6 +343,7 @@ mod tests {
         (recipe, foods)
     }
 
+    /// A total that does not fit in `i64` is an overflow error, not a wrapped value.
     #[test]
     fn total_above_i64_is_an_overflow_error() {
         // i64::MAX × 1000 g / 100 g does not fit in i64.
@@ -308,6 +355,7 @@ mod tests {
         );
     }
 
+    /// The same nutrient code twice in the requested list is an error.
     #[test]
     fn rejects_duplicate_nutrient_codes() {
         let (recipe, foods) = single_food_recipe(1, 100);

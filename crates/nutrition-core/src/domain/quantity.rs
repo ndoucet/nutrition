@@ -11,6 +11,10 @@ impl Grams {
     pub const HUNDRED: Grams = Grams(100);
 
     /// Rejects zero, negative, and values above `u32::MAX`.
+    ///
+    /// # Arguments
+    ///
+    /// * `grams` - mass in whole grams.
     pub fn new(grams: i64) -> Result<Self, Error> {
         u32::try_from(grams)
             .ok()
@@ -19,12 +23,18 @@ impl Grams {
             .ok_or(Error::InvalidQuantity { grams })
     }
 
+    /// The mass in grams.
     pub fn get(self) -> u32 {
         self.0
     }
 }
 
 impl fmt::Display for Grams {
+    /// Formats as whole grams with the unit, e.g. `150 g`.
+    ///
+    /// # Arguments
+    ///
+    /// * `f` - formatter that receives the text.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} g", self.0)
     }
@@ -41,6 +51,7 @@ pub enum Unit {
 }
 
 impl Unit {
+    /// Display symbol of the unit, e.g. `mg` or `µg`.
     pub fn symbol(self) -> &'static str {
         match self {
             Unit::Gram => "g",
@@ -73,15 +84,25 @@ pub struct Amount(i64);
 impl Amount {
     pub const ZERO: Amount = Amount(0);
 
+    /// An amount of `milli` thousandths of the canonical unit.
+    ///
+    /// # Arguments
+    ///
+    /// * `milli` - amount in thousandths of the canonical unit.
     pub fn from_milli(milli: i64) -> Self {
         Amount(milli)
     }
 
+    /// The amount in thousandths of the canonical unit.
     pub fn milli(self) -> i64 {
         self.0
     }
 
     /// Formats the amount with the unit's display precision (D16), e.g. `46.5 g`.
+    ///
+    /// # Arguments
+    ///
+    /// * `unit` - canonical unit of the nutrient the amount belongs to.
     pub fn display(self, unit: Unit) -> AmountDisplay {
         AmountDisplay { amount: self, unit }
     }
@@ -94,6 +115,12 @@ pub struct AmountDisplay {
 }
 
 impl fmt::Display for AmountDisplay {
+    /// Rounds half away from zero to the unit's display decimals (D11, D16) and
+    /// appends the unit symbol.
+    ///
+    /// # Arguments
+    ///
+    /// * `f` - formatter that receives the text; its width and alignment flags apply.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let decimals = self.unit.display_decimals();
         let scale = 10_i128.pow(AMOUNT_DECIMALS - decimals);
@@ -115,6 +142,11 @@ impl fmt::Display for AmountDisplay {
 }
 
 /// Integer division rounding half away from zero (D11). `divisor` must be positive.
+///
+/// # Arguments
+///
+/// * `dividend` - number to divide.
+/// * `divisor` - number to divide by; must be positive.
 pub(crate) fn div_round(dividend: i128, divisor: i128) -> i128 {
     debug_assert!(divisor > 0);
     let quotient = dividend / divisor;
@@ -130,6 +162,7 @@ pub(crate) fn div_round(dividend: i128, divisor: i128) -> i128 {
 mod tests {
     use super::*;
 
+    /// Grams accept only positive values.
     #[test]
     fn rejects_zero_and_negative_grams() {
         assert_eq!(Grams::new(0), Err(Error::InvalidQuantity { grams: 0 }));
@@ -137,6 +170,7 @@ mod tests {
         assert_eq!(Grams::new(150).map(Grams::get), Ok(150));
     }
 
+    /// Halves round away from zero for both signs (D11).
     #[test]
     fn div_round_rounds_half_away_from_zero() {
         assert_eq!(div_round(86_415, 100), 864);
@@ -146,6 +180,8 @@ mod tests {
         assert_eq!(div_round(0, 100), 0);
     }
 
+    /// Each unit is displayed with its own number of decimals (D16) and honours
+    /// width flags.
     #[test]
     fn displays_with_unit_precision() {
         assert_eq!(

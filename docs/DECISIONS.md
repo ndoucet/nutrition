@@ -30,6 +30,7 @@ When a decision changes, update its entry and keep a short note of the previous 
 | D18 | A known value of 0 is normalized to the zero state | 2026-10-21 |
 | D19 | Phase 1 supports only a 100 g reference quantity | 2026-10-21 |
 | D20 | Nutrients are data, not a Rust enum | 2026-10-21 |
+| D21 | Every struct, enum, and function has a doc comment in a fixed format | 2026-10-22 |
 | — | Roadmap contradictions (C2, C3) postponed | 2026-10-21 |
 
 ## D1 / C7: numeric representation
@@ -191,6 +192,16 @@ Phase 1 accepts only compositions with a reference quantity of 100 g; any other 
 A nutrient is a value (code, name, canonical unit), not a variant of a Rust enum. The initial set (D7, D14) is provided as a constant list. Calculations take the list of nutrients to compute.
 
 **Why:** the set will grow and will come from the database (DATA_MODEL §2); an enum would need a code change for every new nutrient.
+
+## D21: code documentation
+
+Every struct, enum, and function in every `.rs` file has a `///` doc comment, and the comments follow one format. This applies to public and private items, trait impls, test helpers, and `#[test]` functions. Documentation is written with the code, in the same change, never added afterwards.
+
+- **Structs and enums:** a summary of what the type represents, with its unit or scale and the decisions it implements (for example, "A nutrient amount in thousandths of its canonical unit (D1)").
+- **Functions:** a one-line summary, then details if needed. A function with arguments other than `self` ends with an `# Arguments` section, one line per argument in the form `` * `name` - meaning ``, giving what the argument represents and its unit or scale (grams, thousandths of the canonical unit, position from 0).
+- **Tests:** the summary states the behaviour checked; the hand calculation of the expected values stays in comments in the body.
+
+**Why:** the code mixes several units and scales (grams, thousandths of different canonical units, 0-based positions shown from 1). Units that are written next to every value and argument prevent scaling errors, and a single format keeps the documentation easy to read and to review.
 
 ## Postponed
 

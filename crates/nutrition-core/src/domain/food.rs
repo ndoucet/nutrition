@@ -117,6 +117,8 @@ pub enum Compositions {
     },
 }
 
+/// A food from a composition source: its identifier (D2), display name, and
+/// nutrient values per reference quantity, shared or per state (D9).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Food {
     id: FoodId,

@@ -34,7 +34,7 @@ cargo run -p nutrition-core --example print_recipe   # phase 1 demo
 - Incomplete data is not an error (C5). Errors are invalid input, unknown food, unsupported profile or method, overflow, database and import failures (ARCHITECTURE.md §5).
 - Domain constants (Henry coefficients, EFSA reference values) are implemented only after they are verified against the primary source and confirmed by a human (D5). Use the `domain-verifier` agent.
 - Every calculation change has tests with hand-checked expected values; float comparisons use explicit tolerances.
-- Every function in every `.rs` file has a `///` doc comment: public and private functions, methods, trait impls, test helpers, and `#[test]` functions (for tests, what behaviour is checked). A function with arguments other than `self` lists each of them under a `# Arguments` section (`` * `name` - meaning ``), giving what it represents and its unit or scale (grams, thousandths of the canonical unit, position from 0).
+- Every struct, enum, and function in every `.rs` file has a `///` doc comment in the D21 format, written in the same change as the code: types state what they represent with unit and decision references; functions give a summary and, when they take arguments other than `self`, a `# Arguments` section (`` * `name` - meaning ``) with each argument's meaning and unit or scale; tests state the behaviour checked.
 - Profile data is never stored unless the user enables it, and never transmitted (C1).
 - A design choice made or changed during work is recorded with the `decision-record` skill.
 

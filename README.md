@@ -100,6 +100,8 @@ cargo fmt --all                                         # formatting
 
 Integration tests are in [`crates/nutrition-core/tests/`](crates/nutrition-core/tests/). Expected values are calculated by hand from [Calculations](docs/CALCULATION.md), with the arithmetic in comments.
 
+Every struct, enum, and function has a doc comment that states units and, for functions, documents each argument (see [Decisions](docs/DECISIONS.md), D21).
+
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md): application components and responsibilities.

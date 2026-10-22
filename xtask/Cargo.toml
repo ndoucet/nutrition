@@ -1,0 +1,10 @@
+[package]
+name = "xtask"
+description = "Development tasks: generates and checks the class diagram (D22)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+syn.workspace = true

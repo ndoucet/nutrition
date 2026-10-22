@@ -96,17 +96,19 @@ Nutrients without a value are not an error: they count as 0 and the result lists
 cargo test --workspace                                  # unit and integration tests
 cargo clippy --workspace --all-targets -- -D warnings   # lints
 cargo fmt --all                                         # formatting
+cargo xtask uml                                         # regenerate the class diagram
 ```
 
 Integration tests are in [`crates/nutrition-core/tests/`](crates/nutrition-core/tests/). Expected values are calculated by hand from [Calculations](docs/CALCULATION.md), with the arithmetic in comments.
 
-Every struct, enum, and function has a doc comment that states units and, for functions, documents each argument (see [Decisions](docs/DECISIONS.md), D21).
+Every struct, enum, and function has a doc comment that states units and, for functions, documents each argument (see [Decisions](docs/DECISIONS.md), D21). The [class diagram](docs/CLASS_DIAGRAM.md) is generated from the source; the test suite fails when it is out of date (D22).
 
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md): application components and responsibilities.
 - [Technology Choices](docs/TECHNOLOGY.md): languages, libraries, and frontend options.
 - [Data Model](docs/DATA_MODEL.md): food, nutrient, recipe, and profile entities.
+- [Class Diagram](docs/CLASS_DIAGRAM.md): UML class diagram of `nutrition-core`, generated from the source.
 - [Calculations](docs/CALCULATION.md): nutrient aggregation, units, energy, and requirements.
 - [Data Sources](docs/DATA_SOURCE.md): food composition databases, references, and licensing.
 - [Decisions](docs/DECISIONS.md): design decisions taken so far.

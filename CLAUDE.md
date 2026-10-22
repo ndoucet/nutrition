@@ -11,6 +11,7 @@ Status: phase 1 (core calculation engine) implemented in `crates/nutrition-core`
 - Decisions: docs/DECISIONS.md
 - Roadmap: docs/ROAD_MAP.md
 - Data model: docs/DATA_MODEL.md
+- Class diagram (generated): docs/CLASS_DIAGRAM.md
 - Domain methods: docs/CALCULATION.md
 - Domain data and sources: docs/DATA_SOURCE.md
 - Glossary: docs/GLOSSARY.md
@@ -24,6 +25,7 @@ cargo fmt --all
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 cargo run -p nutrition-core --example print_recipe   # phase 1 demo
+cargo xtask uml                                      # regenerate docs/CLASS_DIAGRAM.md
 ```
 
 ## Rules
@@ -35,6 +37,7 @@ cargo run -p nutrition-core --example print_recipe   # phase 1 demo
 - Domain constants (Henry coefficients, EFSA reference values) are implemented only after they are verified against the primary source and confirmed by a human (D5). Use the `domain-verifier` agent.
 - Every calculation change has tests with hand-checked expected values; float comparisons use explicit tolerances.
 - Every struct, enum, and function in every `.rs` file has a `///` doc comment in the D21 format, written in the same change as the code: types state what they represent with unit and decision references; functions give a summary and, when they take arguments other than `self`, a `# Arguments` section (`` * `name` - meaning ``) with each argument's meaning and unit or scale; tests state the behaviour checked.
+- After changing types or signatures in `nutrition-core`, run `cargo xtask uml` and commit the diagram; never edit its generated block by hand (D22). `cargo test --workspace` fails while it is stale.
 - Profile data is never stored unless the user enables it, and never transmitted (C1).
 - A design choice made or changed during work is recorded with the `decision-record` skill.
 

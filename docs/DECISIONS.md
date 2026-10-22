@@ -31,6 +31,7 @@ When a decision changes, update its entry and keep a short note of the previous 
 | D19 | Phase 1 supports only a 100 g reference quantity | 2026-10-21 |
 | D20 | Nutrients are data, not a Rust enum | 2026-10-21 |
 | D21 | Every struct, enum, and function has a doc comment in a fixed format | 2026-10-22 |
+| D22 | Class diagram generated from the source and checked by a test | 2026-10-22 |
 | — | Roadmap contradictions (C2, C3) postponed | 2026-10-21 |
 
 ## D1 / C7: numeric representation
@@ -202,6 +203,16 @@ Every struct, enum, and function in every `.rs` file has a `///` doc comment, an
 - **Tests:** the summary states the behaviour checked; the hand calculation of the expected values stays in comments in the body.
 
 **Why:** the code mixes several units and scales (grams, thousandths of different canonical units, 0-based positions shown from 1). Units that are written next to every value and argument prevent scaling errors, and a single format keeps the documentation easy to read and to review.
+
+## D22: class diagram
+
+[CLASS_DIAGRAM.md](CLASS_DIAGRAM.md) holds a UML class diagram of `nutrition-core` as a Mermaid `classDiagram` block, which GitHub and most Markdown viewers render. The block is generated from the source by `cargo xtask uml` (crate `xtask`, which parses the source with `syn`) and is never edited by hand. It shows every struct and enum with all fields or variants, the `pub` and `pub(crate)` functions and constants, trait implementations, and an ownership relation with multiplicity for every field whose type is another type of the crate.
+
+The test `class_diagram_matches_the_code` regenerates the diagram during `cargo test --workspace` and fails when the committed one differs, naming the first differing line. `cargo xtask uml --check` runs the same check alone. A type form the generator does not handle (for example, a generic struct) is an error, not an omission.
+
+**Why:** a diagram written by hand drifts from the code without anyone noticing. Generating it and comparing it in the test suite keeps it exact at no maintenance cost, and Mermaid text stays readable and reviewable in diffs.
+
+**Rejected:** a hand-written diagram with a checker comparing names (still drifts in the details); PlantUML (needs Java and is not rendered by GitHub).
 
 ## Postponed
 

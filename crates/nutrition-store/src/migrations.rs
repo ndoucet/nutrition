@@ -10,10 +10,16 @@ pub(crate) struct Migration {
 }
 
 /// All migrations in order, embedded in the binary. Version `n` is at index `n - 1`.
-pub(crate) const MIGRATIONS: &[Migration] = &[Migration {
-    version: 1,
-    sql: include_str!("../migrations/0001_initial.sql"),
-}];
+pub(crate) const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 1,
+        sql: include_str!("../migrations/0001_initial.sql"),
+    },
+    Migration {
+        version: 2,
+        sql: include_str!("../migrations/0002_food_names_and_search.sql"),
+    },
+];
 
 /// Schema version produced by the last migration; the version this build supports.
 pub const LATEST_SCHEMA_VERSION: i64 = MIGRATIONS[MIGRATIONS.len() - 1].version;

@@ -52,7 +52,7 @@ Notes:
 
 - Use foreign keys, schema migrations, and database constraints.
 - Use the `bundled` feature of `rusqlite` so the SQLite version is the same on every platform, Android included.
-- Food search: use FTS5 with diacritic-insensitive tokenization (`unicode61 remove_diacritics 2`), so that "creme" finds "crème". Plan for food names in French and English.
+- Food search: use FTS5 with diacritic-insensitive tokenization (`unicode61 remove_diacritics 2`), so that "creme" finds "crème". Food names are in French and English (D31); matching rules in D32.
 - Do not store calculated recipe totals as authoritative data unless there is a specific performance or historical-record requirement.
 
 ## 4. Frontend options

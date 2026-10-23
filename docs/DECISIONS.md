@@ -40,6 +40,8 @@ When a decision changes, update its entry and keep a short note of the previous 
 | D28 | A shared composition is stored as one row with state `shared` | 2026-10-23 |
 | D29 | Seed data is inserted by migrations | 2026-10-23 |
 | D30 | Nutrient `definition`, `category`, and `description` wait for verified text | 2026-10-23 |
+| D31 | Foods have an optional French and an optional English name, at least one required | 2026-10-23 |
+| D32 | Food search matches every word as a prefix, ignoring accents and case | 2026-10-23 |
 | — | Roadmap contradictions (C2, C3) postponed | 2026-10-21 |
 
 ## D1 / C7: numeric representation
@@ -55,7 +57,7 @@ Use integers as much as possible, and floats only when an operation requires the
 
 ## D2: identifiers
 
-Internal `INTEGER` primary keys. Imported compositions keep a natural key `(source_id, source_record_id)`, one per source record, so that re-imports update existing records instead of duplicating them. A composition repeats its food's `source_id`, so a food's source cannot change while it has compositions. Previously (2026-10-21): the natural key was on foods, changed because a food has one source record per state (D28).
+Internal `INTEGER` primary keys. Imported compositions keep a natural key `(source_id, source_record_id)`, one per source record, so that re-imports update existing records instead of duplicating them. A composition repeats its food's `source_id`, so a food's source cannot change while it has compositions. `insert_food` rejects a record already stored; updating it on re-import is the importer's job (D26). Previously (2026-10-21): the natural key was on foods, changed because a food has one source record per state (D28).
 
 ## D3: initial food source
 
@@ -194,7 +196,7 @@ A known value of 0 is normalized to the `Zero` state when the value is created. 
 
 ## D19: reference quantity
 
-Phase 1 accepts only compositions with a reference quantity of 100 g; any other value is an error. The common-denominator logic of [CALCULATION.md](CALCULATION.md) §2 is added if a source needs it.
+Phase 1 accepts only compositions with a reference quantity of 100 g; any other value is an error. The store keeps any reference quantity from 1 to 4294967295 g for imported foods, and the calculation enforces this rule; user foods are per 100 g (D25). The common-denominator logic of [CALCULATION.md](CALCULATION.md) §2 is added if a source needs it.
 
 ## D20: nutrients as data
 
@@ -238,7 +240,7 @@ Phase 2 imports and exports JSON only. The initial verified dataset (DATA_SOURCE
 
 ## D25: user-created foods
 
-Users can create foods. They belong to a data source named "user", entered in canonical units per 100 g, with the same nutrient definitions (D3b) and value states (D8) as imported foods. Each user food records its creation date.
+Users can create foods. They belong to a data source named "user", entered in canonical units per 100 g (the store rejects another reference quantity), have no source record identifier, with the same nutrient definitions (D3b) and value states (D8) as imported foods. Each user food records its creation date.
 
 **Why:** the v0.1 acceptance criteria require that foods can be created; D3 alone allowed only CIQUAL foods.
 
@@ -273,6 +275,20 @@ Reference rows the application needs (the initial nutrients, D7 and D14, and the
 The `nutrient` table holds `code`, `name`, and `canonical_unit`. The `definition`, `category`, and `description` columns of DATA_MODEL §2 are added by a later migration, once the text for each nutrient is verified against CIQUAL and EU Regulation 1169/2011 (D3b, D5 rule), together with the CIQUAL licence check.
 
 **Why:** a definition is a domain claim; storing unverified text would look authoritative.
+
+## D31: food names
+
+A food has `name_fr` and `name_en`, both optional, and at least one is required; a name, when present, is not blank (the store rejects blank text, and the schema rejects empty or space-only names). CIQUAL foods carry both names; a user food may have only one. The name of the core `Food` (used in calculation results) is the French name, or the English name when there is no French one. Migration 2 renames the former `name` column to `name_fr` and rebuilds the `food` table to allow it to be absent.
+
+**Why:** CIQUAL publishes both names (DATA_SOURCE.md §2), and TECHNOLOGY.md §3 plans for search in both languages. French first because CIQUAL is a French table; the choice of display language belongs to a later UI setting.
+
+## D32: food search
+
+`search_foods` uses an FTS5 table over both names with the `unicode61 remove_diacritics 2` tokenizer. Every word typed must match the start of a word in either name (`pat cuit` finds "Pâtes cuites"), ignoring accents and case. Each word is quoted before it reaches `MATCH`, so FTS5 operators typed by the user are plain text, and input without a letter or digit matches nothing. Results are ordered by relevance (`bm25`), then by display name and identifier, up to a limit given by the caller. Words are split on every character that is not a letter or digit, as the tokenizer does, so `pomm-de` is two words. Display names are compared ignoring case and the accents of Latin-script letters (`Épinard` sorts with `epinard`, `Œuf` as `oeuf`); `foods` uses the same order.
+
+**Why:** prefix matching suits search as the user types; quoting keeps arbitrary input from causing syntax errors.
+
+**Rejected:** whole-word matching (`pate` would not find "pâtes").
 
 ## Postponed
 

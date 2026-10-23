@@ -8,7 +8,7 @@ use crate::migrations::{migrate, user_version, MIGRATIONS};
 
 /// A local SQLite database at the latest schema version, with foreign keys enforced (D23).
 pub struct Database {
-    conn: Connection,
+    pub(crate) conn: Connection,
 }
 
 impl Database {

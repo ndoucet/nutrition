@@ -151,16 +151,16 @@ pub fn insert_source(conn: &Connection, name: &str) -> i64 {
     conn.last_insert_rowid()
 }
 
-/// Inserts a food and returns its id.
+/// Inserts a food with a French name only and returns its id.
 ///
 /// # Arguments
 ///
 /// * `conn` - the connection to write to.
 /// * `source_id` - id of an existing data source.
-/// * `name` - the food name, non-empty.
+/// * `name` - the French food name (`name_fr`), non-empty.
 pub fn insert_food(conn: &Connection, source_id: i64, name: &str) -> i64 {
     conn.execute(
-        "INSERT INTO food (source_id, name) VALUES (?1, ?2)",
+        "INSERT INTO food (source_id, name_fr) VALUES (?1, ?2)",
         params![source_id, name],
     )
     .expect("insert food");

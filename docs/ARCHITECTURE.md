@@ -123,6 +123,7 @@ crates/
   nutrition-store/      # SQLite, migrations, import/export
     migrations/
       0001_initial.sql
+      0002_food_names_and_search.sql
     src/
       lib.rs
       database.rs
@@ -138,14 +139,15 @@ crates/
       main.rs
 ```
 
-The layout may be simplified during the initial prototype, but `nutrition-core` stays free of I/O. Phase 1 creates only `nutrition-core` (D15); it also has `domain/quantity.rs` (grams, amounts, units), `error.rs`, `tests/` and `examples/`. The workspace also has `xtask/`, a development tool that generates the [class diagram](CLASS_DIAGRAM.md) of `nutrition-core` and checks it in the test suite (D22); `.cargo/config.toml` defines the `cargo xtask` alias. Phase 2 adds `nutrition-store`, with its migrations as numbered SQL files (D23) and JSON import only (`import/ciqual.rs` comes later, D24), and a minimal `nutrition-cli` (D27). `nutrition-store` has `tests/` for the schema constraints and migrations.
+The layout may be simplified during the initial prototype, but `nutrition-core` stays free of I/O. Phase 1 creates only `nutrition-core` (D15); it also has `domain/quantity.rs` (grams, amounts, units), `error.rs`, `tests/` and `examples/`. The workspace also has `xtask/`, a development tool that generates the [class diagram](CLASS_DIAGRAM.md) of `nutrition-core` and checks it in the test suite (D22); `.cargo/config.toml` defines the `cargo xtask` alias. Phase 2 adds `nutrition-store`, with its migrations as numbered SQL files (D23) and JSON import only (`import/ciqual.rs` comes later, D24), and a minimal `nutrition-cli` (D27). `nutrition-store` has `tests/` for the schema constraints and migrations (`schema.rs`) and for food persistence and search (`foods.rs`).
 
 ## 5. Error handling
 
-Errors stop a calculation. They include:
+Errors stop a calculation or a storage operation. They include:
 
-- Invalid input (zero or negative quantity, zero servings, negative nutrient amount, empty recipe, portion without a cooked weight, duplicate food or nutrient identifier).
-- A food that does not exist in the local database.
+- Invalid input (zero or negative quantity, zero servings, negative nutrient amount, empty recipe, portion without a cooked weight, duplicate food or nutrient identifier; for storage: a food without a name, blank text, a user food not per 100 g or with a source record id, a duplicate data source name or source record).
+- A food, data source, or nutrient that does not exist in the local database.
+- Deleting a food used by a recipe (DATA_MODEL §11).
 - An unsupported profile or calculation method (including a reference quantity other than 100 g in phase 1, D19).
 - Arithmetic overflow (not reachable with realistic quantities).
 - Database failures, including a database whose schema is newer than the application supports (D23) and invalid stored data, such as a food without a composition (D28).

@@ -100,6 +100,16 @@ impl Composition {
             .unwrap_or(NutrientValue::Unknown)
     }
 
+    /// The recorded values with their nutrient codes, in no particular order.
+    ///
+    /// Nutrients without a record are not listed; their value is
+    /// [`NutrientValue::Unknown`]. An explicitly recorded `Unknown` is listed.
+    pub fn values(&self) -> impl Iterator<Item = (&str, NutrientValue)> + '_ {
+        self.values
+            .iter()
+            .map(|(code, value)| (code.as_str(), *value))
+    }
+
     /// Quantity of edible portion the values refer to, usually 100 g.
     pub fn reference_quantity(&self) -> Grams {
         self.reference_quantity
@@ -222,5 +232,28 @@ impl FoodCatalog {
     /// True when the catalog holds no food.
     pub fn is_empty(&self) -> bool {
         self.foods.is_empty()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// `values` lists every recorded value, including an explicit `Unknown`,
+    /// and nothing for nutrients without a record.
+    #[test]
+    fn values_lists_recorded_values_only() {
+        let composition = Composition::per_100g()
+            .with("protein", NutrientValue::known(12_000).unwrap())
+            .with("fibre", NutrientValue::Unknown);
+        let mut values: Vec<_> = composition.values().collect();
+        values.sort_by_key(|(code, _)| *code);
+        assert_eq!(
+            values,
+            vec![
+                ("fibre", NutrientValue::Unknown),
+                ("protein", NutrientValue::known(12_000).unwrap()),
+            ]
+        );
     }
 }

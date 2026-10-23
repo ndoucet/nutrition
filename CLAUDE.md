@@ -2,7 +2,7 @@
 
 Rust library and local SQLite database that estimate the nutrient composition of recipes and compare intake with EFSA reference values. See [README.md](README.md).
 
-Status: phase 1 (core calculation engine) implemented in `crates/nutrition-core`; phase 2 in progress: `crates/nutrition-store` has the SQLite schema and migrations.
+Status: phase 1 (core calculation engine) implemented in `crates/nutrition-core`; phase 2 in progress: `crates/nutrition-store` has the SQLite schema, migrations, and food persistence and search.
 
 ## Docs map
 

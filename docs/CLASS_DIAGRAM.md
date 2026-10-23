@@ -82,6 +82,7 @@ classDiagram
         +with(nutrient_code: impl Into~String~, value: NutrientValue) Composition
         +set(nutrient_code: impl Into~String~, value: NutrientValue)
         +value(nutrient_code: &str) NutrientValue
+        +values() impl Iterator~Item = tuple~&str, NutrientValue~~
         +reference_quantity() Grams
     }
     class Compositions {

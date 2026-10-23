@@ -1,6 +1,37 @@
-/// Errors of the persistence layer (ARCHITECTURE.md §5: database failures).
+use nutrition_core::FoodId;
+
+/// Errors of the persistence layer (ARCHITECTURE.md §5): invalid input, an
+/// unknown food, data source, or nutrient, a food still in use, and database
+/// failures.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    #[error("invalid input: {detail}")]
+    InvalidInput { detail: String },
+
+    #[error("data source {name:?} does not exist")]
+    UnknownDataSource { name: String },
+
+    #[error("data source #{source_id} does not exist")]
+    UnknownDataSourceId { source_id: i64 },
+
+    #[error("data source {name:?} already exists")]
+    DuplicateDataSource { name: String },
+
+    #[error("nutrient {code} is not in the database")]
+    UnknownNutrient { code: String },
+
+    #[error("food {food_id} does not exist")]
+    FoodNotFound { food_id: FoodId },
+
+    #[error("food {food_id} is used by a recipe and cannot be deleted")]
+    FoodInUse { food_id: FoodId },
+
+    #[error("record {source_record_id:?} of data source #{source_id} is already stored")]
+    DuplicateSourceRecord {
+        source_id: i64,
+        source_record_id: String,
+    },
+
     #[error("database error while trying to {operation}")]
     Sqlite {
         operation: &'static str,

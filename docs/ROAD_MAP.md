@@ -6,11 +6,10 @@ Completed items are moved to [ROAD_MAP_DONE.md](ROAD_MAP_DONE.md).
 
 ## Phase 2: Persistence
 
-- Implement food queries and persistence.
+- Food editing (update a stored food; re-import updates come with JSON import, D2).
 - Implement recipe persistence.
 - Add basic validation.
 - Add JSON import and export (D26).
-- Allow user-created foods (D25).
 - Populate a small verified dataset, written by hand in JSON (D24), after the CIQUAL licence check.
 - Add a minimal command-line interface (D27).
 

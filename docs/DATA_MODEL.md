@@ -50,11 +50,13 @@ A food represents one ingredient, which can be used raw or cooked.
 Suggested fields:
 
 - `id`
-- `name`
+- `name_fr`, `name_en`: optional, at least one required (D31)
 - `category`
 - `source_id`
 - `description`, optional
 - `created_at`: UTC timestamp, set on insertion (D25)
+
+Foods are searched by name through an FTS5 index over both names, kept in sync by triggers (D32).
 
 ### Food composition
 

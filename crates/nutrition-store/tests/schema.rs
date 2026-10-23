@@ -1,5 +1,7 @@
-//! Schema version 1 tests: migrations, seed data, and every constraint and
-//! trigger of `migrations/0001_initial.sql`.
+//! Schema tests: migrations, seed data, and every constraint and trigger of
+//! `migrations/0001_initial.sql` and `migrations/0002_food_names_and_search.sql`
+//! (French and English food names, FTS5 food search), plus the upgrade of a
+//! version-1 database to version 2.
 //!
 //! Expected behaviour comes from docs/DATA_MODEL.md §2–7 and §11 and
 //! docs/DECISIONS.md (D1, D2, D8, D9, D14, D17, D18, D23, D25, D28, D29), not
@@ -17,10 +19,10 @@ use rusqlite::Connection;
 // Migrations (D23)
 // ---------------------------------------------------------------------------
 
-/// Schema version 1 is the latest one for now.
+/// Schema version 2 (food names and search) is the latest one for now.
 #[test]
-fn latest_schema_version_is_one() {
-    assert_eq!(LATEST_SCHEMA_VERSION, 1);
+fn latest_schema_version_is_two() {
+    assert_eq!(LATEST_SCHEMA_VERSION, 2);
 }
 
 /// An in-memory database is migrated to the latest version on open.
@@ -61,7 +63,9 @@ fn reopening_migrated_file_is_a_no_op_and_keeps_data() {
     assert_eq!(
         query_i64(
             &conn,
-            &format!("SELECT count(*) FROM food WHERE id = {food} AND name = 'Synthetic lentil'")
+            &format!(
+                "SELECT count(*) FROM food WHERE id = {food} AND name_fr = 'Synthetic lentil'"
+            )
         ),
         1
     );
@@ -198,11 +202,11 @@ fn empty_names_are_rejected() {
     );
     assert_rejected(
         &conn,
-        &format!("INSERT INTO food (source_id, name) VALUES ({user}, '')"),
+        &format!("INSERT INTO food (source_id, name_fr) VALUES ({user}, '')"),
     );
     assert_accepted(
         &conn,
-        &format!("INSERT INTO food (source_id, name) VALUES ({user}, 'Synthetic food')"),
+        &format!("INSERT INTO food (source_id, name_fr) VALUES ({user}, 'Synthetic food')"),
     );
     assert_rejected(&conn, "INSERT INTO recipe (name, servings) VALUES ('', 1)");
     assert_accepted(
@@ -211,7 +215,8 @@ fn empty_names_are_rejected() {
     );
 }
 
-/// Missing names (NULL) are rejected.
+/// Missing names (NULL) are rejected; for a food, a NULL French name with no
+/// English name is a food without any name.
 #[test]
 fn null_names_are_rejected() {
     let (_file, conn) = migrated_db("null_names_are_rejected");
@@ -223,7 +228,7 @@ fn null_names_are_rejected() {
     );
     assert_rejected(
         &conn,
-        &format!("INSERT INTO food (source_id, name) VALUES ({user}, NULL)"),
+        &format!("INSERT INTO food (source_id, name_fr) VALUES ({user}, NULL)"),
     );
     assert_rejected(
         &conn,
@@ -280,12 +285,12 @@ fn food_with_unknown_source_is_rejected() {
     let (_file, conn) = migrated_db("food_with_unknown_source_is_rejected");
     assert_rejected(
         &conn,
-        "INSERT INTO food (source_id, name) VALUES (9999, 'Orphan')",
+        "INSERT INTO food (source_id, name_fr) VALUES (9999, 'Orphan')",
     );
     let user = user_source(&conn);
     assert_accepted(
         &conn,
-        &format!("INSERT INTO food (source_id, name) VALUES ({user}, 'Synthetic food')"),
+        &format!("INSERT INTO food (source_id, name_fr) VALUES ({user}, 'Synthetic food')"),
     );
 }
 
@@ -1087,4 +1092,282 @@ fn deleting_data_source_used_by_food_is_rejected() {
         &conn,
         &format!("DELETE FROM data_source WHERE id = {unused}"),
     );
+}
+
+// ---------------------------------------------------------------------------
+// Food names (migration 0002)
+// ---------------------------------------------------------------------------
+
+/// A food with neither a French nor an English name is rejected.
+#[test]
+fn food_without_any_name_is_rejected() {
+    let (_file, conn) = migrated_db("food_without_any_name_is_rejected");
+    let user = user_source(&conn);
+    assert_rejected(
+        &conn,
+        &format!("INSERT INTO food (source_id) VALUES ({user})"),
+    );
+    assert_rejected(
+        &conn,
+        &format!("INSERT INTO food (source_id, name_fr, name_en) VALUES ({user}, NULL, NULL)"),
+    );
+    assert_accepted(
+        &conn,
+        &format!("INSERT INTO food (source_id, name_fr, name_en) VALUES ({user}, 'Synthetic pomme', 'Synthetic apple')"),
+    );
+}
+
+/// An empty French or English name is rejected, even when the other name is
+/// present: absent must be NULL, not ''.
+#[test]
+fn empty_name_fr_or_name_en_is_rejected() {
+    let (_file, conn) = migrated_db("empty_name_fr_or_name_en_is_rejected");
+    let user = user_source(&conn);
+    assert_rejected(
+        &conn,
+        &format!(
+            "INSERT INTO food (source_id, name_fr, name_en) VALUES ({user}, '', 'Synthetic apple')"
+        ),
+    );
+    assert_rejected(
+        &conn,
+        &format!(
+            "INSERT INTO food (source_id, name_fr, name_en) VALUES ({user}, 'Synthetic pomme', '')"
+        ),
+    );
+    assert_rejected(
+        &conn,
+        &format!("INSERT INTO food (source_id, name_en) VALUES ({user}, '')"),
+    );
+}
+
+/// A name made only of spaces is rejected by the schema, in either language (D31).
+#[test]
+fn space_only_food_name_is_rejected() {
+    let (_file, conn) = migrated_db("space_only_food_name_is_rejected");
+    let user = user_source(&conn);
+    assert_rejected(
+        &conn,
+        &format!("INSERT INTO food (source_id, name_fr) VALUES ({user}, '   ')"),
+    );
+    assert_rejected(
+        &conn,
+        &format!("INSERT INTO food (source_id, name_en) VALUES ({user}, ' ')"),
+    );
+}
+
+/// A food with only an English name is accepted, as is one with only a French name.
+#[test]
+fn food_with_only_name_en_is_accepted() {
+    let (_file, conn) = migrated_db("food_with_only_name_en_is_accepted");
+    let user = user_source(&conn);
+    assert_accepted(
+        &conn,
+        &format!("INSERT INTO food (source_id, name_en) VALUES ({user}, 'Synthetic apple')"),
+    );
+    assert_accepted(
+        &conn,
+        &format!("INSERT INTO food (source_id, name_fr) VALUES ({user}, 'Synthetic pomme')"),
+    );
+}
+
+/// Clearing the last remaining name of a food by UPDATE is rejected.
+#[test]
+fn update_removing_the_last_name_is_rejected() {
+    let (_file, conn) = migrated_db("update_removing_the_last_name_is_rejected");
+    let food = insert_food(&conn, user_source(&conn), "Synthetic pomme");
+    assert_rejected(
+        &conn,
+        &format!("UPDATE food SET name_fr = NULL WHERE id = {food}"),
+    );
+    assert_accepted(
+        &conn,
+        &format!("UPDATE food SET name_en = 'Synthetic apple', name_fr = NULL WHERE id = {food}"),
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Food search index (migration 0002)
+// ---------------------------------------------------------------------------
+
+/// The rowids of `food_fts` matching the FTS5 query `query`, in ascending order.
+///
+/// # Arguments
+///
+/// * `conn` - the connection to query.
+/// * `query` - an FTS5 MATCH expression, written by the test (not user input).
+fn fts_matches(conn: &Connection, query: &str) -> Vec<i64> {
+    let mut stmt = conn
+        .prepare("SELECT rowid FROM food_fts WHERE food_fts MATCH ?1 ORDER BY rowid")
+        .unwrap();
+    stmt.query_map([query], |r| r.get(0))
+        .unwrap()
+        .map(Result::unwrap)
+        .collect()
+}
+
+/// Inserting a food adds both its names to `food_fts`.
+#[test]
+fn fts_trigger_indexes_inserted_food() {
+    let (_file, conn) = migrated_db("fts_trigger_indexes_inserted_food");
+    let user = user_source(&conn);
+    conn.execute(
+        "INSERT INTO food (source_id, name_fr, name_en) VALUES (?1, 'Synthetic xylophone', 'Synthetic zither')",
+        [user],
+    )
+    .unwrap();
+    let food = conn.last_insert_rowid();
+    assert_eq!(fts_matches(&conn, "xylophone"), vec![food]);
+    assert_eq!(fts_matches(&conn, "zither"), vec![food]);
+}
+
+/// Updating a name replaces the old indexed terms with the new ones.
+#[test]
+fn fts_trigger_follows_name_updates() {
+    let (_file, conn) = migrated_db("fts_trigger_follows_name_updates");
+    let food = insert_food(&conn, user_source(&conn), "Synthetic xylophone");
+    assert_accepted(
+        &conn,
+        &format!("UPDATE food SET name_fr = 'Synthetic quokka' WHERE id = {food}"),
+    );
+    assert!(fts_matches(&conn, "xylophone").is_empty());
+    assert_eq!(fts_matches(&conn, "quokka"), vec![food]);
+
+    assert_accepted(
+        &conn,
+        &format!("UPDATE food SET name_en = 'Synthetic wombat' WHERE id = {food}"),
+    );
+    assert_eq!(fts_matches(&conn, "wombat"), vec![food]);
+    assert_eq!(fts_matches(&conn, "quokka"), vec![food]);
+}
+
+/// Deleting a food removes it from `food_fts`.
+#[test]
+fn fts_trigger_removes_deleted_food() {
+    let (_file, conn) = migrated_db("fts_trigger_removes_deleted_food");
+    let user = user_source(&conn);
+    let food = insert_food(&conn, user, "Synthetic xylophone");
+    let kept = insert_food(&conn, user, "Kept synthetic xylophone");
+    assert_eq!(fts_matches(&conn, "xylophone"), vec![food, kept]);
+    assert_accepted(&conn, &format!("DELETE FROM food WHERE id = {food}"));
+    assert_eq!(fts_matches(&conn, "xylophone"), vec![kept]);
+}
+
+/// The index ignores accents and case: "creme" and "CREME" find "Crème".
+#[test]
+fn fts_ignores_accents_and_case() {
+    let (_file, conn) = migrated_db("fts_ignores_accents_and_case");
+    let food = insert_food(&conn, user_source(&conn), "Crème fraîche");
+    assert_eq!(fts_matches(&conn, "creme"), vec![food]);
+    assert_eq!(fts_matches(&conn, "CREME"), vec![food]);
+    assert_eq!(fts_matches(&conn, "fraiche"), vec![food]);
+}
+
+// ---------------------------------------------------------------------------
+// Upgrade from schema version 1 (migration 0002 rebuilds `food`)
+// ---------------------------------------------------------------------------
+
+/// A version-1 database with a food, a composition, a nutrient value, and a
+/// recipe item is upgraded to version 2 without losing any row: the food keeps
+/// its id, its old name becomes `name_fr`, `name_en` is NULL, nothing is
+/// cascade-deleted by the table rebuild, foreign keys are consistent, and the
+/// food is in the search index.
+#[test]
+fn upgrade_from_version_1_preserves_foods_and_dependents() {
+    let file = TempDbFile::new("upgrade_from_version_1_preserves_foods_and_dependents");
+    let (food, comp, protein, recipe) = {
+        let conn = raw_connection(file.path());
+        conn.execute_batch(include_str!("../migrations/0001_initial.sql"))
+            .expect("apply migration 0001 by hand");
+        conn.pragma_update(None, "user_version", 1).unwrap();
+        let user = user_source(&conn);
+        // An unused food first, so that the food under test does not have id 1.
+        conn.execute(
+            "INSERT INTO food (source_id, name) VALUES (?1, 'Synthetic filler')",
+            [user],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO food (source_id, name) VALUES (?1, 'Crème synthétique')",
+            [user],
+        )
+        .unwrap();
+        let food = conn.last_insert_rowid();
+        let comp = insert_composition(&conn, food, user, "shared", None);
+        let protein = nutrient_id(&conn, "protein");
+        // 3.000 g of protein per 100 g, synthetic (D13).
+        conn.execute(
+            "INSERT INTO food_nutrient_value VALUES (?1, ?2, 'known', 3000)",
+            [comp, protein],
+        )
+        .unwrap();
+        let recipe = insert_recipe(&conn);
+        conn.execute(
+            "INSERT INTO recipe_item VALUES (?1, 0, ?2, 'raw', 100)",
+            [recipe, food],
+        )
+        .unwrap();
+        (food, comp, protein, recipe)
+    };
+
+    let db = Database::open(file.path()).expect("open and upgrade a version-1 database");
+    assert_eq!(db.schema_version().unwrap(), 2);
+    let found: Vec<i64> = db
+        .search_foods("creme", 10)
+        .expect("search after upgrade")
+        .iter()
+        .map(|f| f.id.0)
+        .collect();
+    assert_eq!(found, vec![food]);
+    drop(db);
+
+    let conn = raw_connection(file.path());
+    assert_eq!(query_i64(&conn, "PRAGMA user_version"), 2);
+    let (name_fr, name_en): (Option<String>, Option<String>) = conn
+        .query_row(
+            "SELECT name_fr, name_en FROM food WHERE id = ?1",
+            [food],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .expect("the food keeps its id");
+    assert_eq!(name_fr.as_deref(), Some("Crème synthétique"));
+    assert_eq!(name_en, None);
+    assert_eq!(query_i64(&conn, "SELECT count(*) FROM food"), 2);
+    assert_eq!(
+        query_i64(
+            &conn,
+            &format!(
+                "SELECT count(*) FROM food_composition WHERE id = {comp} AND food_id = {food}"
+            )
+        ),
+        1
+    );
+    assert_eq!(
+        query_i64(
+            &conn,
+            &format!("SELECT amount FROM food_nutrient_value WHERE composition_id = {comp} AND nutrient_id = {protein} AND value_state = 'known'")
+        ),
+        3000
+    );
+    assert_eq!(
+        query_i64(
+            &conn,
+            &format!(
+                "SELECT count(*) FROM recipe_item WHERE recipe_id = {recipe} AND food_id = {food}"
+            )
+        ),
+        1
+    );
+    let mut stmt = conn.prepare("PRAGMA foreign_key_check").unwrap();
+    assert_eq!(stmt.query_map([], |_| Ok(())).unwrap().count(), 0);
+    drop(stmt);
+    let integrity: String = conn
+        .query_row("PRAGMA integrity_check", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(integrity, "ok");
+    // The index was rebuilt from the existing rows.
+    assert_eq!(fts_matches(&conn, "creme"), vec![food]);
+    // The rebuilt table keeps its constraints: the food under test is still
+    // protected from deletion by its recipe item.
+    assert_rejected(&conn, &format!("DELETE FROM food WHERE id = {food}"));
 }

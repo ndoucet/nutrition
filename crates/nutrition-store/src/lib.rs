@@ -6,8 +6,12 @@
 
 mod database;
 mod error;
+mod foods;
 mod migrations;
 
 pub use database::Database;
 pub use error::Error;
+pub use foods::{
+    FoodSummary, NewComposition, NewCompositions, NewDataSource, NewFood, SourceId, USER_SOURCE,
+};
 pub use migrations::LATEST_SCHEMA_VERSION;

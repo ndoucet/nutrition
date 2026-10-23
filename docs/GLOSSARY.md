@@ -9,6 +9,7 @@
 | Canonical unit | The single unit in which a nutrient is stored and calculated (e.g. g for protein, µg for vitamin D). |
 | Carbohydrate by difference | 100 g minus water, protein, fat, and ash. Includes fibre. The usual USDA convention. |
 | CIQUAL | French food composition table, published by ANSES. |
+| Display name | The French name of a food, or its English name when it has no French one (D31). |
 | DRV | Dietary Reference Value. General term for AR, PRI, AI, RI, and UL. |
 | Edible portion | The part of a food that is eaten (no peel, bones, etc.). Composition values are per 100 g of edible portion. |
 | EFSA | European Food Safety Authority. |

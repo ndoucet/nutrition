@@ -19,5 +19,6 @@
 | Reference quantity | The food quantity a composition is expressed for, 100 g of edible portion by default. |
 | RI | Reference Intake range (EFSA). A range for macronutrients, expressed as a percentage of energy intake. |
 | Serving | One of the user-defined number of servings of a recipe; not necessarily a standard dietary portion. |
+| Shared composition | The single composition of a food whose source does not distinguish raw and cooked; used for both states (D28). |
 | Trace | A nutrient present in an amount too small to quantify. Counted as 0. |
 | UL | Tolerable Upper Intake Level (EFSA). The maximum chronic daily intake unlikely to cause harm. |

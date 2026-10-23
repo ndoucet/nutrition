@@ -6,8 +6,6 @@ Completed items are moved to [ROAD_MAP_DONE.md](ROAD_MAP_DONE.md).
 
 ## Phase 2: Persistence
 
-- Add SQLite.
-- Create versioned schema migrations.
 - Implement food queries and persistence.
 - Implement recipe persistence.
 - Add basic validation.

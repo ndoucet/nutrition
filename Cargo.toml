@@ -1,12 +1,14 @@
 [workspace]
 resolver = "2"
-members = ["crates/nutrition-core", "xtask"]
+members = ["crates/nutrition-core", "crates/nutrition-store", "xtask"]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.80"
+rust-version = "1.85"
 
 [workspace.dependencies]
 thiserror = "2.0.12"
+rusqlite = { version = "0.40.2", features = ["bundled"] }
+nutrition-core = { path = "crates/nutrition-core" }
 syn = { version = "3.0.9", default-features = false, features = ["full", "parsing"] }

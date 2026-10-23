@@ -9,7 +9,7 @@ The data model separates food composition from nutritional recommendations.
 
 These datasets have different sources, update cycles, and meanings.
 
-All amounts are stored as integers (see [DECISIONS.md](DECISIONS.md), D1): quantities in grams, nutrient amounts as fixed-point values with 3 decimals of the canonical unit.
+All amounts are stored as integers (see [DECISIONS.md](DECISIONS.md), D1): quantities in grams, nutrient amounts as fixed-point values with 3 decimals of the canonical unit. Timestamps are UTC text in the form `YYYY-MM-DDTHH:MM:SSZ`.
 
 ## 2. Nutrient
 
@@ -22,6 +22,8 @@ Suggested fields:
 - `canonical_unit`
 - `definition`: the convention used (source and method)
 - `description`, optional
+
+Schema version 1 stores `id`, `code`, `name`, and `canonical_unit` (stored as `g`, `mg`, `ug`, `kJ`, or `kcal`). `category`, `definition`, and `description` are added once their text is verified (D30). The initial set is inserted by the first migration (D29).
 
 Initial set (D7; codes and canonical units in D14):
 
@@ -52,23 +54,26 @@ Suggested fields:
 - `category`
 - `source_id`
 - `description`, optional
+- `created_at`: UTC timestamp, set on insertion (D25)
 
 ### Food composition
 
-Each food has one composition per preparation state.
+Each food has one composition per preparation state, or one composition shared by both (D28).
 
-Suggested fields:
+Fields:
 
+- `id`
 - `food_id`
-- `state`: `raw` or `cooked`
-- `source_record_id`: the source's identifier for this composition
+- `source_id`: the food's source, repeated so that `(source_id, source_record_id)` can be unique (D2)
+- `state`: `raw`, `cooked`, or `shared` when the source does not distinguish raw and cooked, so the same composition is used for both (D28)
+- `source_record_id`: the source's identifier for this composition; absent for user-created foods
 - `reference_quantity_g`: 100 by default
-- `shared_with_other_state`: true when the source does not distinguish raw and cooked, so the same composition is used for both
 
 Rules:
 
 - When the source provides both states (for example, two CIQUAL records for dry and cooked pasta), each state links to its own record. The pairing is done during import and documented in a mapping file.
-- When the source provides only one, both states use the same composition and `shared_with_other_state` is set (`Compositions::Shared` in Rust). The calculation result lists these ingredients, whichever state was selected.
+- A food without any composition, or with only one of `raw` and `cooked`, is invalid stored data (D28).
+- When the source provides only one, the food has a single `shared` composition used for both states (`Compositions::Shared` in Rust). A `shared` composition cannot coexist with another composition of the same food. The calculation result lists these ingredients, whichever state was selected.
 - Values are per 100 g of edible portion. The weight entered by the user must be the edible weight (no peel, bones, etc.).
 - Other materially different forms (dried, fried, etc.) are separate foods.
 
@@ -76,10 +81,9 @@ Rules:
 
 Each record links one food composition to one nutrient.
 
-Suggested fields:
+Fields:
 
-- `food_id`
-- `state`
+- `composition_id`
 - `nutrient_id`
 - `value_state`: `known`, `zero`, `trace`, `below_limit`, or `unknown`
 - `amount`: integer fixed-point; set for `known`. For `below_limit`, holds the limit.
@@ -87,7 +91,8 @@ Suggested fields:
 Rules:
 
 - The amount is expressed per the reference quantity, in the nutrient's canonical unit.
-- A missing record is equivalent to `unknown`.
+- A missing record is equivalent to `unknown`. An explicit `unknown` record keeps the source's marker (CIQUAL `-`).
+- `amount` is positive for `known`, non-negative for `below_limit`, and absent for the other states.
 - A known value of 0 is stored as `zero`; negative amounts are rejected (D18).
 - CIQUAL markers map directly to these states: a number → `known` (or `zero`), `traces` → `trace`, `< x` → `below_limit`, `-` → `unknown`.
 
@@ -107,7 +112,7 @@ enum NutrientValue {
 
 ## 5. Data sources
 
-Suggested fields:
+Fields:
 
 - `id`
 - `name`
@@ -124,7 +129,7 @@ Foods created by the user belong to a source named "user" (D25).
 
 A reusable collection of ingredients.
 
-Suggested fields:
+Fields:
 
 - `id`
 - `name`
@@ -132,15 +137,16 @@ Suggested fields:
 - `servings`: positive integer
 - `cooked_weight_g`, optional: total weight of the finished dish, used to convert a portion in grams into a share of the recipe
 - `created_at`
-- `updated_at`
+- `updated_at`: set by the store whenever the recipe or its items change
 
 A recipe contains one or more recipe items. Recipes do not contain other recipes in the initial phases.
 
 ## 7. Recipe item
 
-Suggested fields:
+Fields:
 
 - `recipe_id`
+- `position`: 0-based position in the recipe; `(recipe_id, position)` is unique
 - `food_id`
 - `state`: `raw` or `cooked`
 - `quantity_g`: positive integer, the weight in the selected state
@@ -195,11 +201,11 @@ Reference types are not interchangeable and must be labelled accordingly. Only a
 ## 11. Database constraints
 
 - Enforce foreign keys.
-- Reject zero or negative food quantities.
-- Reject zero or negative serving counts.
+- Food quantities, reference quantities, cooked weights, and serving counts are integers from 1 to 4294967295 (the range of `Grams` and `Servings` in `nutrition-core`).
 - Validate units at import time; everything stored is in canonical units.
 - Use unique identifiers for foods and nutrients, and a unique `(source_id, source_record_id)` for imported records.
-- Apply schema changes through versioned migrations.
+- Apply schema changes through versioned migrations (D23). The schema is in `crates/nutrition-store/migrations/`; tables are `STRICT`.
+- A food used by a recipe item, a nutrient used by a value, and a data source used by a food cannot be deleted. A food's source cannot change while it has compositions (D2). Deleting a food deletes its compositions and values; deleting a recipe deletes its items.
 - Keep food provenance when importing or updating records.
 
 ## 12. Derived values

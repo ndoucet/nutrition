@@ -38,13 +38,13 @@ See [Technology Choices](docs/TECHNOLOGY.md) and [Architecture](docs/ARCHITECTUR
 
 Phase 1 done: `nutrition-core` is a tested Rust library that calculates the nutrient composition of a recipe, tested with synthetic foods (see [Decisions](docs/DECISIONS.md), D13 and D15). Try it with `cargo run -p nutrition-core --example print_recipe`.
 
-Next: phase 2, SQLite persistence and a small verified CIQUAL dataset.
+Phase 2 in progress: `nutrition-store` creates and migrates the SQLite database (schema version 1, with the initial nutrients). Next: food and recipe persistence, JSON import and export, a small verified CIQUAL dataset, and a minimal CLI.
 
 ## Getting started
 
 ### Install
 
-Requirements: a stable Rust toolchain (developed with Rust 1.87), installed for example with [rustup](https://rustup.rs). There is no database or other service to set up in phase 1.
+Requirements: a stable Rust toolchain, 1.85 or later (developed with Rust 1.87), installed for example with [rustup](https://rustup.rs). SQLite is bundled; there is no database server or other service to set up.
 
 ```sh
 git clone <repository-url> nutrition

@@ -32,6 +32,8 @@ Recommended initial dependencies:
 | CSV import (CIQUAL) | `csv`, if needed, after phase 2 (D24) |
 | Date handling | `chrono`, `time`, or `jiff`, from phase 5 |
 
+The minimum Rust version is 1.85, required by `rusqlite` 0.40.
+
 `nutrition-core` should have as few dependencies as possible. Use the Rust standard library wherever it is sufficient. Select and pin compatible dependency versions when implementation begins.
 
 ## 3. SQLite

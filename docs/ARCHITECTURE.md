@@ -121,9 +121,12 @@ crates/
         energy.rs
         requirements.rs
   nutrition-store/      # SQLite, migrations, import/export
+    migrations/
+      0001_initial.sql
     src/
       lib.rs
       database.rs
+      migrations.rs
       foods.rs
       recipes.rs
       profiles.rs
@@ -135,7 +138,7 @@ crates/
       main.rs
 ```
 
-The layout may be simplified during the initial prototype, but `nutrition-core` stays free of I/O. Phase 1 creates only `nutrition-core` (D15); it also has `domain/quantity.rs` (grams, amounts, units), `error.rs`, `tests/` and `examples/`. The workspace also has `xtask/`, a development tool that generates the [class diagram](CLASS_DIAGRAM.md) of `nutrition-core` and checks it in the test suite (D22); `.cargo/config.toml` defines the `cargo xtask` alias. Phase 2 adds `nutrition-store`, with its migrations as numbered SQL files (D23) and JSON import only (`import/ciqual.rs` comes later, D24), and a minimal `nutrition-cli` (D27).
+The layout may be simplified during the initial prototype, but `nutrition-core` stays free of I/O. Phase 1 creates only `nutrition-core` (D15); it also has `domain/quantity.rs` (grams, amounts, units), `error.rs`, `tests/` and `examples/`. The workspace also has `xtask/`, a development tool that generates the [class diagram](CLASS_DIAGRAM.md) of `nutrition-core` and checks it in the test suite (D22); `.cargo/config.toml` defines the `cargo xtask` alias. Phase 2 adds `nutrition-store`, with its migrations as numbered SQL files (D23) and JSON import only (`import/ciqual.rs` comes later, D24), and a minimal `nutrition-cli` (D27). `nutrition-store` has `tests/` for the schema constraints and migrations.
 
 ## 5. Error handling
 
@@ -145,7 +148,7 @@ Errors stop a calculation. They include:
 - A food that does not exist in the local database.
 - An unsupported profile or calculation method (including a reference quantity other than 100 g in phase 1, D19).
 - Arithmetic overflow (not reachable with realistic quantities).
-- Database failures.
+- Database failures, including a database whose schema is newer than the application supports (D23) and invalid stored data, such as a food without a composition (D28).
 - Failed data imports (including unit conversion failures at import time).
 
 Incomplete nutrient data is **not** an error. Missing values use the unknown state and are reported in the result alongside the totals. In the user interface, ingredients can only be selected from the local database.

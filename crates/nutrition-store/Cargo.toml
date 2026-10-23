@@ -1,0 +1,11 @@
+[package]
+name = "nutrition-store"
+description = "SQLite persistence, migrations, and import/export."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+nutrition-core.workspace = true
+rusqlite.workspace = true
+thiserror.workspace = true

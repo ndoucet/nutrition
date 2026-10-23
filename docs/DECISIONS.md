@@ -7,7 +7,7 @@ When a decision changes, update its entry and keep a short note of the previous 
 | ID | Decision | Date |
 |----|----------|------|
 | D1 / C7 | Integers wherever possible; floats only where required | 2026-10-21 |
-| D2 | Integer identifiers | 2026-10-21 |
+| D2 | Integer identifiers; natural key on imported compositions | 2026-10-23 |
 | D3 | CIQUAL as the single initial food source | 2026-10-21 |
 | D3b | European nutrient definitions as the base | 2026-10-21 |
 | D4 | EFSA dietary reference values, adults only | 2026-10-21 |
@@ -37,6 +37,9 @@ When a decision changes, update its entry and keep a short note of the previous 
 | D25 | Users can create their own foods, under a "user" data source | 2026-10-23 |
 | D26 | One versioned JSON format for foods and recipes | 2026-10-23 |
 | D27 | Phase 2 includes a minimal `nutrition-cli` | 2026-10-23 |
+| D28 | A shared composition is stored as one row with state `shared` | 2026-10-23 |
+| D29 | Seed data is inserted by migrations | 2026-10-23 |
+| D30 | Nutrient `definition`, `category`, and `description` wait for verified text | 2026-10-23 |
 | — | Roadmap contradictions (C2, C3) postponed | 2026-10-21 |
 
 ## D1 / C7: numeric representation
@@ -52,7 +55,7 @@ Use integers as much as possible, and floats only when an operation requires the
 
 ## D2: identifiers
 
-Internal `INTEGER` primary keys. Imported foods also keep a natural key `(source_id, source_record_id)` so that re-imports update existing records instead of duplicating them.
+Internal `INTEGER` primary keys. Imported compositions keep a natural key `(source_id, source_record_id)`, one per source record, so that re-imports update existing records instead of duplicating them. A composition repeats its food's `source_id`, so a food's source cannot change while it has compositions. Previously (2026-10-21): the natural key was on foods, changed because a food has one source record per state (D28).
 
 ## D3: initial food source
 
@@ -221,7 +224,7 @@ The test `class_diagram_matches_the_code` regenerates the diagram during `cargo 
 
 ## D23: database migrations
 
-The schema is created and changed by numbered SQL files (`migrations/0001_initial.sql`, ...) embedded in `nutrition-store` with `include_str!`. `PRAGMA user_version` holds the number of the last applied migration. Each migration runs in one transaction with its `user_version` update. A database with a higher version than the application knows is refused. An applied migration is never edited. The procedure is in the `sqlite-migrations` skill.
+The schema is created and changed by numbered SQL files (`migrations/0001_initial.sql`, ...) embedded in `nutrition-store` with `include_str!`. `PRAGMA user_version` holds the number of the last applied migration. Each migration runs in one transaction with its `user_version` update. A database with a higher version than the application knows is refused. An applied migration is never edited. Migrations run with foreign keys off, so a table can be rebuilt, and `PRAGMA foreign_key_check` must pass before each commit. Each runs in an `IMMEDIATE` transaction that re-reads the version, so two processes opening a new database migrate it once. The procedure is in the `sqlite-migrations` skill.
 
 **Why:** no extra dependency, and the SQL stays readable and reviewable.
 
@@ -250,6 +253,26 @@ A single JSON format holds foods (with their source and compositions) and recipe
 Phase 2 adds a minimal `nutrition-cli` crate: `init`, `import`, `export`, `list` (foods and recipes), and `show recipe` (prints the calculation result). The database path is a required argument. It is a development and acceptance tool, not the phase 3 user interface.
 
 **Why:** the phase 2 deliverable, a database-backed meal calculator, needs a way to be used before a frontend is chosen (C2 stays postponed).
+
+## D28: shared composition storage
+
+`food_composition.state` is `raw`, `cooked`, or `shared`. A food whose source distinguishes the states has a `raw` and a `cooked` row; a food whose source does not has a single `shared` row (`Compositions::Shared` in Rust). Triggers reject a `shared` row next to any other composition of the same food. A food with no composition, or with only one of `raw` and `cooked`, cannot be prevented by a row constraint, so it is reported as invalid stored data when the food is loaded; the store inserts a food and its compositions in one transaction.
+
+**Why:** it mirrors the Rust enum and stores each value once.
+
+**Rejected:** two rows with a `shared_with_other_state` flag (the first DATA_MODEL suggestion): duplicated values and a consistency rule between rows.
+
+## D29: seed data in migrations
+
+Reference rows the application needs (the initial nutrients, D7 and D14, and the "user" data source, D25) are inserted by the migrations. A test checks that the stored nutrients equal `initial_nutrients()`. Adding a nutrient is a new migration.
+
+**Why:** the database contents then depend only on the schema version, so every database at a version has the same reference rows.
+
+## D30: nutrient definition and category
+
+The `nutrient` table holds `code`, `name`, and `canonical_unit`. The `definition`, `category`, and `description` columns of DATA_MODEL §2 are added by a later migration, once the text for each nutrient is verified against CIQUAL and EU Regulation 1169/2011 (D3b, D5 rule), together with the CIQUAL licence check.
+
+**Why:** a definition is a domain claim; storing unverified text would look authoritative.
 
 ## Postponed
 

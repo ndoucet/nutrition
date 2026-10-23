@@ -10,6 +10,7 @@ Status: phase 1 (core calculation engine) implemented in `crates/nutrition-core`
 - Architecture: docs/ARCHITECTURE.md
 - Decisions: docs/DECISIONS.md
 - Roadmap: docs/ROAD_MAP.md
+- Completed roadmap: docs/ROAD_MAP_DONE.md
 - Data model: docs/DATA_MODEL.md
 - Class diagram (generated): docs/CLASS_DIAGRAM.md
 - Domain methods: docs/CALCULATION.md
@@ -40,6 +41,7 @@ cargo xtask uml                                      # regenerate docs/CLASS_DIA
 - After changing types or signatures in `nutrition-core`, run `cargo xtask uml` and commit the diagram; never edit its generated block by hand (D22). `cargo test --workspace` fails while it is stale.
 - Profile data is never stored unless the user enables it, and never transmitted (C1).
 - A design choice made or changed during work is recorded with the `decision-record` skill.
+- When a roadmap item is done, move it from docs/ROAD_MAP.md to docs/ROAD_MAP_DONE.md under its phase, with the date and commit; move the phase's scope and deliverable once all its items are done.
 
 ## Priorities
 

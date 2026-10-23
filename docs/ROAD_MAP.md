@@ -2,22 +2,7 @@
 
 > The inconsistencies between phases noted in the initial review (C2, C3) are known and postponed. C4 is resolved by D13.
 
-## Phase 1: Core calculation engine
-
-- Define food, nutrient, recipe, and recipe-item types.
-- Define canonical units.
-- Implement nutrient scaling.
-- Implement recipe aggregation.
-- Implement per-serving calculations.
-- Handle incomplete nutrient data.
-- Add automated unit tests.
-
-Scope: the `nutrition-core` crate only, tested with synthetic foods (D13, D15).
-
-Deliverable: a tested Rust library that calculates recipe composition without a frontend:
-
-- add and remove ingredients through library functions;
-- print the content line by line.
+Completed items are moved to [ROAD_MAP_DONE.md](ROAD_MAP_DONE.md).
 
 ## Phase 2: Persistence
 

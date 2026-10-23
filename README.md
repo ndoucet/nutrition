@@ -114,6 +114,7 @@ Every struct, enum, and function has a doc comment that states units and, for fu
 - [Decisions](docs/DECISIONS.md): design decisions taken so far.
 - [Glossary](docs/GLOSSARY.md): nutrition terms and abbreviations.
 - [Roadmap](docs/ROAD_MAP.md): development phases and initial acceptance criteria.
+- [Completed roadmap](docs/ROAD_MAP_DONE.md): roadmap items already done.
 - [AI Agents](docs/AI_AGENTS.md): roles for AI-assisted development.
 - Contributing: development and testing workflow (to be written).
 

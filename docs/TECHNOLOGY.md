@@ -18,7 +18,7 @@ The initial implementation should minimize dependencies and avoid introducing a 
 
 Rust is responsible for domain logic, validation, persistence integration, and nutritional calculations.
 
-The code is organized as a Cargo workspace (`nutrition-core`, `nutrition-store`, `nutrition-cli`; see [ARCHITECTURE.md](ARCHITECTURE.md) §4). Only `nutrition-core` exists in phase 1 (D15).
+The code is organized as a Cargo workspace (`nutrition-core`, `nutrition-store`, `nutrition-cli`; see [ARCHITECTURE.md](ARCHITECTURE.md) §4). Only `nutrition-core` exists in phase 1 (D15); phase 2 adds `nutrition-store` and a minimal `nutrition-cli` (D27).
 
 Recommended initial dependencies:
 
@@ -28,8 +28,8 @@ Recommended initial dependencies:
 | JSON import/export | `serde_json` |
 | SQLite access | `rusqlite`, with the `bundled` feature |
 | Structured errors | `thiserror` |
-| Database migrations | `rusqlite_migration`, or numbered SQL files with `PRAGMA user_version` |
-| CSV import (CIQUAL) | `csv`, if needed |
+| Database migrations | numbered SQL files with `PRAGMA user_version` (D23) |
+| CSV import (CIQUAL) | `csv`, if needed, after phase 2 (D24) |
 | Date handling | `chrono`, `time`, or `jiff`, from phase 5 |
 
 `nutrition-core` should have as few dependencies as possible. Use the Rust standard library wherever it is sufficient. Select and pin compatible dependency versions when implementation begins.

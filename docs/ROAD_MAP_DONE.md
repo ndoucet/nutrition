@@ -2,6 +2,10 @@
 
 Items moved from [ROAD_MAP.md](ROAD_MAP.md) when done, grouped by phase, with the commit that completed them.
 
+## Phase 2: Persistence
+
+- Before starting: create the `sqlite-migrations` skill in `base-agents` (Database Engineer role, see [AI_AGENTS.md](AI_AGENTS.md)). Completed 2026-10-23 in base-agents 6e0bb7f.
+
 ## Phase 1: Core calculation engine
 
 Completed 2026-10-21 in a5a784f.

@@ -118,6 +118,8 @@ Suggested fields:
 
 Retain the source record identifier and original data where needed for traceability and re-imports.
 
+Foods created by the user belong to a source named "user" (D25).
+
 ## 6. Recipe
 
 A reusable collection of ingredients.

@@ -135,7 +135,7 @@ crates/
       main.rs
 ```
 
-The layout may be simplified during the initial prototype, but `nutrition-core` stays free of I/O. Phase 1 creates only `nutrition-core` (D15); it also has `domain/quantity.rs` (grams, amounts, units), `error.rs`, `tests/` and `examples/`. The workspace also has `xtask/`, a development tool that generates the [class diagram](CLASS_DIAGRAM.md) of `nutrition-core` and checks it in the test suite (D22); `.cargo/config.toml` defines the `cargo xtask` alias.
+The layout may be simplified during the initial prototype, but `nutrition-core` stays free of I/O. Phase 1 creates only `nutrition-core` (D15); it also has `domain/quantity.rs` (grams, amounts, units), `error.rs`, `tests/` and `examples/`. The workspace also has `xtask/`, a development tool that generates the [class diagram](CLASS_DIAGRAM.md) of `nutrition-core` and checks it in the test suite (D22); `.cargo/config.toml` defines the `cargo xtask` alias. Phase 2 adds `nutrition-store`, with its migrations as numbered SQL files (D23) and JSON import only (`import/ciqual.rs` comes later, D24), and a minimal `nutrition-cli` (D27).
 
 ## 5. Error handling
 

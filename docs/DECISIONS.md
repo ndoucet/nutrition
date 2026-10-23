@@ -32,6 +32,11 @@ When a decision changes, update its entry and keep a short note of the previous 
 | D20 | Nutrients are data, not a Rust enum | 2026-10-21 |
 | D21 | Every struct, enum, and function has a doc comment in a fixed format | 2026-10-22 |
 | D22 | Class diagram generated from the source and checked by a test | 2026-10-22 |
+| D23 | Migrations as numbered SQL files with `PRAGMA user_version` | 2026-10-23 |
+| D24 | Phase 2 imports JSON only; the CIQUAL CSV importer comes later | 2026-10-23 |
+| D25 | Users can create their own foods, under a "user" data source | 2026-10-23 |
+| D26 | One versioned JSON format for foods and recipes | 2026-10-23 |
+| D27 | Phase 2 includes a minimal `nutrition-cli` | 2026-10-23 |
 | — | Roadmap contradictions (C2, C3) postponed | 2026-10-21 |
 
 ## D1 / C7: numeric representation
@@ -51,7 +56,7 @@ Internal `INTEGER` primary keys. Imported foods also keep a natural key `(source
 
 ## D3: initial food source
 
-CIQUAL (ANSES) is the only food source for the initial phases, so that a meal never mixes nutrient definitions from different sources. Its licence must be checked and recorded before bundling (see [DATA_SOURCE.md](DATA_SOURCE.md)).
+CIQUAL (ANSES) is the only external food source for the initial phases, so that a meal never mixes nutrient definitions from different sources. Foods created by the user are also allowed, and follow the same definitions (D25). Its licence must be checked and recorded before bundling (see [DATA_SOURCE.md](DATA_SOURCE.md)).
 
 ## D3b: nutrient definitions
 
@@ -213,6 +218,38 @@ The test `class_diagram_matches_the_code` regenerates the diagram during `cargo 
 **Why:** a diagram written by hand drifts from the code without anyone noticing. Generating it and comparing it in the test suite keeps it exact at no maintenance cost, and Mermaid text stays readable and reviewable in diffs.
 
 **Rejected:** a hand-written diagram with a checker comparing names (still drifts in the details); PlantUML (needs Java and is not rendered by GitHub).
+
+## D23: database migrations
+
+The schema is created and changed by numbered SQL files (`migrations/0001_initial.sql`, ...) embedded in `nutrition-store` with `include_str!`. `PRAGMA user_version` holds the number of the last applied migration. Each migration runs in one transaction with its `user_version` update. A database with a higher version than the application knows is refused. An applied migration is never edited. The procedure is in the `sqlite-migrations` skill.
+
+**Why:** no extra dependency, and the SQL stays readable and reviewable.
+
+**Rejected:** `rusqlite_migration` (a dependency for what a short loop does).
+
+## D24: phase 2 import
+
+Phase 2 imports and exports JSON only. The initial verified dataset (DATA_SOURCE.md §7) is CIQUAL values written by hand into a JSON file, with their provenance, and checked by a person. The CIQUAL CSV importer (decimal commas, markers, raw/cooked pairing file) comes in a later phase.
+
+**Why:** 10 to 20 foods do not justify the importer yet, and hand-checked JSON keeps phase 2 small.
+
+## D25: user-created foods
+
+Users can create foods. They belong to a data source named "user", entered in canonical units per 100 g, with the same nutrient definitions (D3b) and value states (D8) as imported foods. Each user food records its creation date.
+
+**Why:** the v0.1 acceptance criteria require that foods can be created; D3 alone allowed only CIQUAL foods.
+
+## D26: JSON format
+
+A single JSON format holds foods (with their source and compositions) and recipes, with a top-level `format_version` integer. Nutrient amounts are written as the stored integer fixed-point values (D1), and value states explicitly; an absent nutrient means unknown. Import validates everything before writing anything, in one transaction.
+
+**Why:** one format for backup, exchange, and the initial dataset; integers keep round trips exact.
+
+## D27: phase 2 command-line interface
+
+Phase 2 adds a minimal `nutrition-cli` crate: `init`, `import`, `export`, `list` (foods and recipes), and `show recipe` (prints the calculation result). The database path is a required argument. It is a development and acceptance tool, not the phase 3 user interface.
+
+**Why:** the phase 2 deliverable, a database-backed meal calculator, needs a way to be used before a frontend is chosen (C2 stays postponed).
 
 ## Postponed
 

@@ -57,7 +57,7 @@ The roles are implemented with generic Claude Code agents and skills from `../ba
 |------|----------------|
 | Project Architect | Main session, `decision-record` skill |
 | Rust Backend Developer | Main session, `rust-conventions` skill |
-| Database Engineer | `sqlite-migrations` skill (phase 2) |
+| Database Engineer | `sqlite-migrations` skill |
 | Nutrition Scientist | `domain-verifier` agent |
 | Test & Quality Engineer | `test-engineer` agent |
 | Code Reviewer | `/code-review` and `docs-conformance-reviewer` agent |

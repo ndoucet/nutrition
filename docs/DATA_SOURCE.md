@@ -21,6 +21,10 @@ CIQUAL, the French food composition table published by ANSES, is the only food s
 - It is published under the French *Licence Ouverte / Etalab 2.0* (to be confirmed against the current terms).
 - Its export files use decimal commas.
 
+### User-created foods
+
+Users can create foods (D25). They belong to a data source named "user" and follow the same nutrient definitions, canonical units, and value states as CIQUAL foods.
+
 ### Later: USDA FoodData Central
 
 USDA FoodData Central may be added later. Its nutrient definitions differ from the European ones (for example, its carbohydrate usually includes fibre). Before USDA data is imported, a conversion process must be defined that maps each USDA nutrient to a European definition, or creates a separate nutrient when no exact mapping exists.
@@ -103,6 +107,6 @@ A recommendation must not be labelled as universal if it applies only to a parti
 
 ## 7. Initial dataset
 
-Begin with a small dataset that can be checked manually: 10 to 20 CIQUAL foods, some with both raw and cooked records, and a few recipes with hand-calculated expected results.
+Begin with a small dataset that can be checked manually, written by hand in the JSON format (D24, D26): 10 to 20 CIQUAL foods, some with both raw and cooked records, and a few recipes with hand-calculated expected results.
 
 Each record should include enough provenance to validate its values. Expand coverage only after the import and validation process is reliable.

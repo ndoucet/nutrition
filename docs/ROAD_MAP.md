@@ -11,9 +11,12 @@ Completed items are moved to [ROAD_MAP_DONE.md](ROAD_MAP_DONE.md).
 - Implement food queries and persistence.
 - Implement recipe persistence.
 - Add basic validation.
-- Add JSON import and export.
-- Populate a small verified dataset.
-- Before starting: create the `sqlite-migrations` skill in `base-agents` (Database Engineer role, see [AI_AGENTS.md](AI_AGENTS.md)).
+- Add JSON import and export (D26).
+- Allow user-created foods (D25).
+- Populate a small verified dataset, written by hand in JSON (D24), after the CIQUAL licence check.
+- Add a minimal command-line interface (D27).
+
+Migrations follow D23. The CIQUAL CSV importer is postponed (D24).
 
 Deliverable: a local database-backed meal calculator.
 
